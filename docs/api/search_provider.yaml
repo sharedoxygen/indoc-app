@@ -1,0 +1,88 @@
+openapi: 3.0.3
+info:
+  title: Search Provider API
+  version: 1.0.0
+servers:
+  - url: /api/v1/search
+paths:
+  /query:
+    post:
+      summary: Execute a hybrid search (keyword + vector)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                filters:
+                  type: object
+                top_k:
+                  type: integer
+              required:
+                - query
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        score:
+                          type: number
+                        snippet:
+                          type: string
+                        provenance:
+                          type: object
+  /rerank:
+    post:
+      summary: Re-rank candidate results (internal service)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                candidates:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "200":
+          description: Re-ranked results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        score:
+                          type: number
+                        snippet:
+                          type: string
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+x-rbac: {}
