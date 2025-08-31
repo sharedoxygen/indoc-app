@@ -32,9 +32,23 @@ env/
 .venv
 
 # Environment files
+.env
 .env.local
+.env.*
+*.env
 *.env.backup
-.env.*.local
+*.env.local
+
+# Keys and secrets
+keys/
+*.key
+*.pem
+*.p12
+*.pfx
+*.secret
+*secret*
+*credentials*
+CREDENTIALS.md
 
 # IDE
 .vscode/
