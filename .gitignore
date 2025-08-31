@@ -39,6 +39,9 @@ env/
 *.env.backup
 *.env.local
 
+# Allow .env.example for documentation
+!.env.example
+
 # Keys and secrets
 keys/
 *.key
