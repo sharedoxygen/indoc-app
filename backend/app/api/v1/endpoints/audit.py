@@ -30,7 +30,7 @@ async def get_audit_logs(
     """Get audit logs with optional filters"""
     
     # Only admins can view audit logs
-    if current_user.role != "Admin":
+    if getattr(current_user.role, "value", current_user.role) != "Admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can view audit logs"
@@ -98,7 +98,7 @@ async def get_audit_summary(
     """Get audit log summary for the specified number of days"""
     
     # Only admins can view audit logs
-    if current_user.role != "Admin":
+    if getattr(current_user.role, "value", current_user.role) != "Admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can view audit logs"
@@ -154,7 +154,7 @@ async def export_audit_logs(
     """Export audit logs in specified format"""
     
     # Only admins can export audit logs
-    if current_user.role != "Admin":
+    if getattr(current_user.role, "value", current_user.role) != "Admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can export audit logs"

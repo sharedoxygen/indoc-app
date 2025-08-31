@@ -5,11 +5,12 @@ from typing import Optional, List
 from pydantic_settings import BaseSettings
 from pydantic import Field, field_validator, ConfigDict
 from pathlib import Path
+import os
 
 
 class Settings(BaseSettings):
     # Pydantic v2 config
-    model_config = ConfigDict(env_file=".env", case_sensitive=True, extra='ignore')
+    model_config = ConfigDict(env_file=[".env", "../.env"], case_sensitive=True, extra='ignore')
 
     # Application
     APP_NAME: str = "inDoc"
@@ -29,32 +30,65 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "indoc_dev_password"
     
     # Elasticsearch
-    ELASTICSEARCH_URL: str = "http://localhost:9200"
-    ELASTICSEARCH_INDEX: str = "indoc_documents"
+    ELASTICSEARCH_URL: str = Field(default="http://localhost:9200")
+    ELASTICSEARCH_INDEX: str = Field(default="indoc_documents")
     
-    # Weaviate
-    WEAVIATE_URL: str = "http://localhost:8080"
-    WEAVIATE_CLASS: str = "Document"
+    # Weaviate  
+    WEAVIATE_URL: str = Field(default="http://localhost:8060")
+    WEAVIATE_CLASS: str = Field(default="Document")
     
     # Redis
-    REDIS_URL: str = "redis://localhost:6379"
+    REDIS_URL: str = Field(default="redis://localhost:6379")
     
     # Celery
     CELERY_BROKER_URL: str = Field(default="redis://localhost:6379/0")
     CELERY_RESULT_BACKEND: str = Field(default="redis://localhost:6379/0")
     
     # Ollama
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama2"
+    OLLAMA_BASE_URL: str = Field(default="http://localhost:11434")
+    OLLAMA_MODEL: str = Field(default="llama2")
     
     # Security
-    JWT_SECRET_KEY: str = Field(default="change-this-in-production")
+    JWT_SECRET_KEY: str = Field(default="")  # Will be set by key manager
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_MINUTES: int = 1440
     
     # Encryption
-    FIELD_ENCRYPTION_KEY: str = Field(default="")
+    FIELD_ENCRYPTION_KEY: str = Field(default="")  # Will be set by key manager
     ENABLE_FIELD_ENCRYPTION: bool = True
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Initialize production keys if not provided
+        self._initialize_production_keys()
+    
+    def _initialize_production_keys(self):
+        """Initialize production-grade keys using key manager"""
+        try:
+            from app.core.key_management import get_production_keys
+            
+            production_keys = get_production_keys()
+            
+            # Set JWT secret if not provided via environment
+            if not self.JWT_SECRET_KEY:
+                self.JWT_SECRET_KEY = production_keys['jwt_secret_key']
+            
+            # Set field encryption key if not provided via environment  
+            if not self.FIELD_ENCRYPTION_KEY:
+                self.FIELD_ENCRYPTION_KEY = production_keys['field_encryption_key']
+                
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to initialize production keys: {e}")
+            
+            # Fallback to environment variables or generate temporary keys
+            if not self.JWT_SECRET_KEY:
+                self.JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', os.urandom(32).hex())
+            if not self.FIELD_ENCRYPTION_KEY:
+                from cryptography.fernet import Fernet
+                import base64
+                self.FIELD_ENCRYPTION_KEY = base64.urlsafe_b64encode(Fernet.generate_key()).decode()
     
     # Storage (no side effects here)
     TEMP_REPO_PATH: Path = Path("/tmp/indoc_temp")

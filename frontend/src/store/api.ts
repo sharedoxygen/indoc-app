@@ -42,20 +42,41 @@ export const api = createApi({
 
     // Document endpoints
     getDocuments: builder.query({
-      query: ({ skip = 0, limit = 100 }) => `/files?skip=${skip}&limit=${limit}`,
+      query: ({ skip = 0, limit = 100, search, file_type, sort_by = 'created_at', sort_order = 'desc' }) => {
+        const params = new URLSearchParams({
+          skip: skip.toString(),
+          limit: limit.toString(),
+          sort_by,
+          sort_order,
+        });
+        if (search) params.append('search', search);
+        if (file_type && file_type !== 'all') params.append('file_type', file_type);
+        return `/files/list?${params.toString()}`;
+      },
       providesTags: ['Document'],
     }),
     getDocument: builder.query({
       query: (id) => `/files/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Document', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Document', id }],
     }),
     uploadDocument: builder.mutation({
       query: (formData) => ({
-        url: '/files',
+        url: '/files/upload',
         method: 'POST',
         body: formData,
       }),
       invalidatesTags: ['Document'],
+    }),
+
+    // Analytics endpoints
+    getAnalyticsSummary: builder.query<any, void>({
+      query: () => `/analytics/summary`,
+    }),
+    getAnalyticsStorage: builder.query<any, void>({
+      query: () => `/analytics/storage`,
+    }),
+    getAnalyticsTimeseries: builder.query<any, { days?: number }>({
+      query: ({ days = 30 } = {}) => `/analytics/timeseries?days=${days}`,
     }),
     updateDocument: builder.mutation({
       query: ({ id, ...data }) => ({
@@ -63,7 +84,7 @@ export const api = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Document', id }],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Document', id }],
     }),
     deleteDocument: builder.mutation({
       query: (id) => ({
@@ -116,36 +137,46 @@ export const api = createApi({
     }),
     exportAuditLogs: builder.mutation({
       query: (params) => ({
-        url: '/audit/export',
+        url: '/audit/logs/export',
         method: 'POST',
-        body: params,
+        params,
       }),
     }),
 
-    // Settings endpoints
+    // Settings endpoints (align with backend)
     getSettings: builder.query({
-      query: (key) => `/settings/${key}`,
-      providesTags: (result, error, key) => [{ type: 'Settings', id: key }],
+      query: () => `/settings`,
+      providesTags: () => [{ type: 'Settings', id: 'base' }],
     }),
-    updateSettings: builder.mutation({
-      query: ({ key, value }) => ({
-        url: `/settings/${key}`,
+    getAdminSettings: builder.query({
+      query: () => `/settings/admin`,
+      providesTags: () => [{ type: 'Settings', id: 'admin' }],
+    }),
+    updateAdminSettings: builder.mutation({
+      query: (settingsUpdate) => ({
+        url: `/settings/admin`,
         method: 'PUT',
-        body: { value },
+        body: settingsUpdate,
       }),
-      invalidatesTags: (result, error, { key }) => [{ type: 'Settings', id: key }],
+      invalidatesTags: () => [{ type: 'Settings', id: 'admin' }],
+    }),
+    getFeatureFlags: builder.query({
+      query: () => `/settings/features`,
+    }),
+    getDependenciesHealth: builder.query({
+      query: () => `/settings/health/dependencies`,
     }),
 
-    // MCP endpoints
+    // MCP endpoints (align with backend)
     executeTool: builder.mutation({
-      query: (toolRequest) => ({
-        url: '/mcp/tools/execute',
+      query: (command) => ({
+        url: '/mcp/execute',
         method: 'POST',
-        body: toolRequest,
+        body: command,
       }),
     }),
-    getToolMetrics: builder.query({
-      query: () => '/mcp/metrics',
+    getMcpStatus: builder.query({
+      query: () => '/mcp/status',
     }),
   }),
 })
@@ -167,7 +198,13 @@ export const {
   useGetAuditLogsQuery,
   useExportAuditLogsMutation,
   useGetSettingsQuery,
-  useUpdateSettingsMutation,
+  useGetAdminSettingsQuery,
+  useUpdateAdminSettingsMutation,
+  useGetFeatureFlagsQuery,
+  useGetDependenciesHealthQuery,
   useExecuteToolMutation,
-  useGetToolMetricsQuery,
+  useGetMcpStatusQuery,
+  useGetAnalyticsSummaryQuery,
+  useGetAnalyticsStorageQuery,
+  useGetAnalyticsTimeseriesQuery,
 } = api

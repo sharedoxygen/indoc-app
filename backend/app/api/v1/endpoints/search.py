@@ -6,12 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from datetime import datetime
 
-from app.core.security import get_current_user
+from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
+from app.models.document import Document
 from app.models.audit import AuditLog
 from app.mcp.providers.search_provider import SearchProvider
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
 router = APIRouter()
 search_provider = SearchProvider()
@@ -48,7 +50,7 @@ async def search_documents(
         "user": {
             "id": current_user.id,
             "email": current_user.email,
-            "role": current_user.role
+            "role": getattr(current_user.role, "value", current_user.role)
         }
     }
     
@@ -56,7 +58,7 @@ async def search_documents(
     if search_query.filters is None:
         search_query.filters = {}
     
-    if current_user.role not in ["Admin", "Reviewer"]:
+    if getattr(current_user.role, "value", current_user.role) not in ["Admin", "Reviewer"]:
         search_query.filters["uploaded_by"] = current_user.id
     
     # Perform search
@@ -77,7 +79,7 @@ async def search_documents(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="search",
         resource_type="search",
         request_params={
@@ -146,7 +148,7 @@ async def find_similar_documents(
             context={
                 "user": {
                     "id": current_user.id,
-                    "role": current_user.role
+                    "role": getattr(current_user.role, "value", current_user.role)
                 }
             }
         )
@@ -155,7 +157,7 @@ async def find_similar_documents(
         audit_log = AuditLog(
             user_id=current_user.id,
             user_email=current_user.email,
-            user_role=current_user.role,
+            user_role=getattr(current_user.role, "value", current_user.role),
             action="search",
             resource_type="similarity",
             resource_id=document_id,

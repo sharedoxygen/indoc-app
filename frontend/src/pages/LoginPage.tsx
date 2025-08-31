@@ -8,6 +8,8 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  Paper,
+  Divider,
 } from '@mui/material'
 import {
   Visibility,
@@ -17,12 +19,13 @@ import {
 } from '@mui/icons-material'
 import { useAppDispatch, useAppSelector } from '../hooks/redux'
 import { login, clearError } from '../store/slices/authSlice'
+import Logo from '../components/Logo'
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { isLoading, error } = useAppSelector((state) => state.auth)
-  
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -49,11 +52,16 @@ const LoginPage: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom align="center">
+      {/* Logo and branding */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+        <Logo size="large" />
+      </Box>
+
+      <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: 700, mb: 1 }}>
         Welcome Back
       </Typography>
-      <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-        Sign in to access your documents
+      <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4, fontSize: '1.1rem' }}>
+        Sign in to access your intelligent document management system
       </Typography>
 
       {error && (
@@ -80,7 +88,7 @@ const LoginPage: React.FC = () => {
             ),
           }}
         />
-        
+
         <TextField
           fullWidth
           name="password"
@@ -114,29 +122,47 @@ const LoginPage: React.FC = () => {
           fullWidth
           variant="contained"
           size="large"
-          sx={{ mt: 3, mb: 2 }}
+          sx={{
+            mt: 3,
+            mb: 3,
+            py: 1.5,
+            fontSize: '1rem',
+            fontWeight: 600,
+            borderRadius: 2,
+            background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+              transform: 'translateY(-1px)',
+              boxShadow: 4,
+            },
+          }}
           disabled={isLoading}
         >
           {isLoading ? 'Signing in...' : 'Sign In'}
         </Button>
 
+        <Divider sx={{ my: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            or
+          </Typography>
+        </Divider>
+
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="body2">
             Don't have an account?{' '}
-            <Link to="/register" style={{ textDecoration: 'none', color: '#1976d2' }}>
-              Sign up
+            <Link
+              to="/register"
+              style={{
+                textDecoration: 'none',
+                color: '#1976d2',
+                fontWeight: 500,
+              }}
+            >
+              Sign up here
             </Link>
           </Typography>
         </Box>
       </form>
-
-      <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-        <Typography variant="caption" color="text.secondary">
-          <strong>Demo Credentials:</strong><br />
-          Username: admin@indoc.local<br />
-          Password: admin123
-        </Typography>
-      </Box>
     </Box>
   )
 }

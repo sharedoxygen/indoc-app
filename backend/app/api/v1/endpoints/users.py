@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.config import settings
-from app.core.security import get_current_user, require_admin
+from app.api.deps import get_current_user, require_admin
 from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.models.audit import AuditLog
@@ -46,7 +46,7 @@ async def list_users(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="list",
         resource_type="users",
         details={"count": len(users), "role_filter": role}
@@ -101,7 +101,7 @@ async def get_user(
     Users can view their own profile, Admins can view any profile
     """
     # Check permissions
-    if current_user.id != user_id and current_user.role != UserRole.ADMIN:
+    if current_user.id != user_id and getattr(current_user.role, "value", current_user.role) != "Admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view this user"
@@ -141,11 +141,11 @@ async def create_new_user(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="create",
         resource_type="user",
         resource_id=str(user.id),
-        details={"new_user_email": user.email, "new_user_role": user.role}
+        details={"new_user_email": user.email, "new_user_role": getattr(user.role, "value", user.role)}
     )
     db.add(audit_log)
     await db.commit()
@@ -165,14 +165,14 @@ async def update_user_info(
     Users can update their own profile (except role), Admins can update any profile
     """
     # Check permissions
-    if current_user.id != user_id and current_user.role != UserRole.ADMIN:
+    if current_user.id != user_id and getattr(current_user.role, "value", current_user.role) != "Admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update this user"
         )
     
     # Non-admins cannot change roles
-    if current_user.role != UserRole.ADMIN and user_update.role:
+    if getattr(current_user.role, "value", current_user.role) != "Admin" and user_update.role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins can change user roles"
@@ -190,7 +190,7 @@ async def update_user_info(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="update",
         resource_type="user",
         resource_id=str(user_id),
@@ -222,7 +222,7 @@ async def activate_user_account(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="activate",
         resource_type="user",
         resource_id=str(user_id)
@@ -260,7 +260,7 @@ async def deactivate_user_account(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="deactivate",
         resource_type="user",
         resource_id=str(user_id)
@@ -292,7 +292,7 @@ async def reset_user_password(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="reset_password",
         resource_type="user",
         resource_id=str(user_id)
@@ -331,7 +331,7 @@ async def delete_user_account(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="delete",
         resource_type="user",
         resource_id=str(user_id),

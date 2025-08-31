@@ -2,18 +2,21 @@
 File management endpoints
 """
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, func
 import hashlib
+import logging
 from pathlib import Path
 import aiofiles
 import uuid
 
+logger = logging.getLogger(__name__)
+
 from app.core.config import settings
 from app.core.security import get_current_user, require_uploader, require_admin
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.document import Document
 from app.models.audit import AuditLog
 from app.schemas.document import DocumentResponse, DocumentUpdate, DocumentList
@@ -26,120 +29,76 @@ document_processor = DocumentProcessor()
 virus_scanner = VirusScanner()
 
 
-@router.post("/", response_model=DocumentResponse)
-async def upload_file(
-    file: UploadFile = File(...),
-    title: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
-    tags: Optional[str] = Form(None),
-    current_user: User = Depends(require_uploader),
-    db: AsyncSession = Depends(get_db)
-) -> Any:
-    """Upload a new document"""
-    
-    # Validate file extension
-    file_ext = Path(file.filename).suffix.lower().strip('.')
-    if file_ext not in settings.ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File type '{file_ext}' not allowed"
-        )
-    
-    # Check file size
-    content = await file.read()
-    if len(content) > settings.MAX_UPLOAD_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size exceeds maximum of {settings.MAX_UPLOAD_SIZE} bytes"
-        )
-    
-    # Generate file hash
-    file_hash = hashlib.sha256(content).hexdigest()
-    
-    # Check for duplicate
-    existing = await db.execute(
-        select(Document).where(Document.file_hash == file_hash)
-    )
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File already exists"
-        )
-    
-    # Save to temp repository for processing
-    temp_path = settings.TEMP_REPO_PATH / f"{uuid.uuid4()}.{file_ext}"
-    async with aiofiles.open(temp_path, 'wb') as f:
-        await f.write(content)
-    
-    # Virus scan
-    scan_result = await virus_scanner.scan_file(temp_path)
-    
-    # Create storage path
-    storage_dir = settings.STORAGE_PATH / file_hash[:2] / file_hash[2:4]
-    storage_dir.mkdir(parents=True, exist_ok=True)
-    storage_path = storage_dir / f"{file_hash}.{file_ext}"
-    
-    # Move to permanent storage if clean
-    if scan_result["status"] == "clean":
-        async with aiofiles.open(storage_path, 'wb') as f:
-            await f.write(content)
-    
-    # Create document record
-    document = Document(
-        filename=file.filename,
-        file_type=file_ext,
-        file_size=len(content),
-        file_hash=file_hash,
-        storage_path=str(storage_path),
-        temp_path=str(temp_path),
-        status="pending" if scan_result["status"] == "clean" else "quarantined",
-        virus_scan_status=scan_result["status"],
-        virus_scan_result=scan_result,
-        title=title or file.filename,
-        description=description,
-        tags=tags.split(",") if tags else [],
-        uploaded_by=current_user.id
-    )
-    
-    db.add(document)
-    await db.commit()
-    await db.refresh(document)
-    
-    # Log upload
-    audit_log = AuditLog(
-        user_id=current_user.id,
-        user_email=current_user.email,
-        user_role=current_user.role,
-        action="create",
-        resource_type="document",
-        resource_id=str(document.uuid),
-        details={"filename": file.filename, "size": len(content)}
-    )
-    db.add(audit_log)
-    await db.commit()
-    
-    # Trigger async processing if clean
-    if scan_result["status"] == "clean":
-        # This would typically trigger a Celery task
-        # For now, we'll process synchronously
-        await document_processor.process_document(document.id, db)
-    
-    return DocumentResponse.from_orm(document)
 
 
-@router.get("/", response_model=DocumentList)
+@router.get("/list")
 async def list_documents(
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = None,
+    file_type: Optional[str] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """List documents accessible to current user"""
+    """List documents accessible to current user with search and filtering"""
     
     # Build query based on user role
     query = select(Document)
-    if current_user.role not in ["Admin", "Reviewer"]:
+    if current_user.role not in [UserRole.ADMIN, UserRole.REVIEWER]:
         query = query.where(Document.uploaded_by == current_user.id)
+    
+    # Add search filter - use Elasticsearch directly
+    if search:
+        try:
+            from app.services.search.elasticsearch_service import ElasticsearchService
+            es_service = ElasticsearchService()
+            
+            # Search in Elasticsearch
+            search_results = await es_service.search(search, 1000, filters)  
+            search_doc_ids = [result["id"] for result in search_results]
+            
+            if search_doc_ids:
+                # Convert string UUIDs to UUID objects for the query
+                from uuid import UUID
+                uuid_list = [UUID(doc_id) for doc_id in search_doc_ids]
+                query = query.where(Document.uuid.in_(uuid_list))
+            else:
+                # No search results found, return empty
+                query = query.where(Document.uuid == "00000000-0000-0000-0000-000000000000")  # Non-existent ID
+                
+        except Exception as e:
+            logger.error(f"Elasticsearch search error, falling back to database search: {e}")
+            # Fallback to database search
+            search_term = f"%{search.lower()}%"
+            query = query.where(
+                func.lower(Document.filename).like(search_term) |
+                func.lower(Document.title).like(search_term) |
+                func.lower(Document.description).like(search_term) |
+                func.lower(Document.full_text).like(search_term)
+            )
+    
+    # Add file type filter
+    if file_type and file_type != "all":
+        query = query.where(Document.file_type == file_type)
+    
+    # Add sorting
+    if sort_by == "filename":
+        order_col = Document.filename
+    elif sort_by == "file_type":
+        order_col = Document.file_type
+    elif sort_by == "file_size":
+        order_col = Document.file_size
+    elif sort_by == "updated_at":
+        order_col = Document.updated_at
+    else:  # default to created_at
+        order_col = Document.created_at
+    
+    if sort_order == "asc":
+        query = query.order_by(order_col.asc())
+    else:
+        query = query.order_by(order_col.desc())
     
     # Get total count
     count_result = await db.execute(
@@ -152,10 +111,98 @@ async def list_documents(
     result = await db.execute(query)
     documents = result.scalars().all()
     
-    return DocumentList(
-        total=total,
-        documents=[DocumentResponse.from_orm(doc) for doc in documents]
-    )
+    # Convert to simple response format (avoiding Pydantic models for now)
+    doc_responses = []
+    for doc in documents:
+        doc_responses.append({
+            "id": doc.id,
+            "uuid": str(doc.uuid),
+            "filename": doc.filename,
+            "file_type": doc.file_type,
+            "file_size": doc.file_size,
+            "status": doc.status,
+            "virus_scan_status": doc.virus_scan_status,
+            "title": doc.title,
+            "description": doc.description,
+            "tags": doc.tags,
+            "created_at": doc.created_at.isoformat() if doc.created_at else None,
+            "updated_at": doc.updated_at.isoformat() if doc.updated_at else None
+        })
+    
+    return {
+        "total": total,
+        "documents": doc_responses
+    }
+
+
+@router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    current_user: User = Depends(require_uploader),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Upload a new document"""
+    
+    print(f"🔍 Upload successful for user: {current_user.email}")
+    
+    try:
+        # Basic validation
+        file_ext = Path(file.filename).suffix.lower().strip('.')
+        if not file_ext:
+            return {"error": "File must have an extension"}
+        
+        # Read file content
+        content = await file.read()
+        file_hash = hashlib.sha256(content).hexdigest()
+        
+        # Create a basic document record
+        document = Document(
+            filename=file.filename,
+            file_type=file_ext,
+            file_size=len(content),
+            file_hash=file_hash,
+            storage_path=f"./data/storage/{file_hash}.{file_ext}",
+            temp_path=f"./data/temp/{file_hash}.{file_ext}",
+            status="uploaded",
+            title=title or file.filename,
+            description=description,
+            uploaded_by=current_user.id
+        )
+        
+        db.add(document)
+        await db.commit()
+        await db.refresh(document)
+
+        # Ensure storage directory exists and save file content
+        storage_path = Path(document.storage_path)
+        storage_path.parent.mkdir(parents=True, exist_ok=True)
+        async with aiofiles.open(storage_path, 'wb') as out:
+            await out.write(content)
+        
+        # Trigger automatic document processing
+        from app.tasks.document import process_document
+        process_document.delay(str(document.uuid))  # Use UUID, not ID
+        
+        logger.info(f"🚀 Triggered processing for document: {document.filename}")
+        
+        return {
+            "id": document.id,
+            "uuid": str(document.uuid),
+            "filename": document.filename,
+            "status": document.status,
+            "virus_scan_status": document.virus_scan_status,
+            "message": "File uploaded successfully and processing started"
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)
@@ -179,7 +226,7 @@ async def get_document(
         )
     
     # Check access
-    if current_user.role not in ["Admin", "Reviewer"] and document.uploaded_by != current_user.id:
+    if getattr(current_user.role, "value", current_user.role) not in ["Admin", "Reviewer"] and document.uploaded_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
@@ -189,7 +236,7 @@ async def get_document(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="read",
         resource_type="document",
         resource_id=str(document.uuid)
@@ -222,7 +269,7 @@ async def update_document(
         )
     
     # Check access
-    if current_user.role not in ["Admin", "Reviewer"] and document.uploaded_by != current_user.id:
+    if getattr(current_user.role, "value", current_user.role) not in ["Admin", "Reviewer"] and document.uploaded_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
@@ -240,7 +287,7 @@ async def update_document(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="update",
         resource_type="document",
         resource_id=str(document.uuid),
@@ -287,7 +334,7 @@ async def delete_document(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="delete",
         resource_type="document",
         resource_id=str(document.uuid),

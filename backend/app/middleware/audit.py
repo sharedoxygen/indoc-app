@@ -60,26 +60,29 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 action = self._determine_action(request.method, request.url.path)
                 resource_type = self._determine_resource_type(request.url.path)
                 
-                # Create audit log entry
-                async with AsyncSessionLocal() as db:
-                    audit_log = AuditLog(
-                        user_id=user_id,
-                        user_email=user_email or "anonymous",
-                        user_role=user_role or "anonymous",
-                        action=action,
-                        resource_type=resource_type,
-                        resource_id=None,  # Could be extracted from path
-                        details={
-                            "method": request.method,
-                            "path": request.url.path,
-                            "status_code": response.status_code,
-                            "duration_ms": round(duration * 1000, 2)
-                        },
-                        ip_address=client_ip,
-                        user_agent=user_agent
-                    )
-                    db.add(audit_log)
-                    await db.commit()
+                # Create audit log entry only for authenticated requests
+                if user_id is not None:  # Only log for authenticated users
+                    async with AsyncSessionLocal() as db:
+                        # Ensure enum values are coerced to strings
+                        coerced_role = getattr(user_role, "value", user_role) if user_role is not None else "anonymous"
+                        audit_log = AuditLog(
+                            user_id=user_id,
+                            user_email=user_email or "anonymous",
+                            user_role=coerced_role,
+                            action=action,
+                            resource_type=resource_type,
+                            resource_id=None,  # Could be extracted from path
+                            details={
+                                "method": request.method,
+                                "path": request.url.path,
+                                "status_code": response.status_code,
+                                "duration_ms": round(duration * 1000, 2)
+                            },
+                            ip_address=client_ip,
+                            user_agent=user_agent
+                        )
+                        db.add(audit_log)
+                        await db.commit()
                     
             except Exception as e:
                 logger.error(f"Failed to create audit log: {e}")

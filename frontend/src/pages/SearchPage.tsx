@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Paper,
@@ -20,13 +20,10 @@ import {
   Select,
   MenuItem,
   Slider,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
+
   CircularProgress,
   Alert,
   Pagination,
-  Highlight,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -39,7 +36,8 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
-import { useSearchDocumentsMutation } from '../store/api'
+import { useSearchDocumentsMutation, useFindSimilarDocumentsQuery } from '../store/api'
+import { skipToken } from '@reduxjs/toolkit/query'
 import { format } from 'date-fns'
 
 interface SearchResult {
@@ -66,7 +64,7 @@ interface SearchFilters {
 const SearchPage: React.FC = () => {
   const navigate = useNavigate()
   const [searchDocuments, { isLoading }] = useSearchDocumentsMutation()
-  
+
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [totalResults, setTotalResults] = useState(0)
@@ -75,6 +73,10 @@ const SearchPage: React.FC = () => {
   const [resultsPerPage] = useState(10)
   const [searchType, setSearchType] = useState('hybrid')
   const [showFilters, setShowFilters] = useState(false)
+  const [similarFor, setSimilarFor] = useState<string | null>(null)
+  const { data: similarData } = useFindSimilarDocumentsQuery(
+    similarFor ? { id: similarFor, limit: 5 } : skipToken as any,
+  ) as any
   const [filters, setFilters] = useState<SearchFilters>({
     file_type: [],
     date_range: { start: null, end: null },
@@ -88,7 +90,7 @@ const SearchPage: React.FC = () => {
 
     try {
       const filterObj: any = {}
-      
+
       if (filters.file_type.length > 0) {
         filterObj.file_type = filters.file_type
       }
@@ -139,7 +141,7 @@ const SearchPage: React.FC = () => {
 
   const highlightText = (text: string, highlight: string) => {
     if (!highlight.trim()) return text
-    
+
     const parts = text.split(new RegExp(`(${highlight})`, 'gi'))
     return parts.map((part, index) =>
       part.toLowerCase() === highlight.toLowerCase() ? (
@@ -291,7 +293,7 @@ const SearchPage: React.FC = () => {
                   <Typography gutterBottom>Minimum Relevance Score</Typography>
                   <Slider
                     value={filters.min_score}
-                    onChange={(e, value) =>
+                    onChange={(_e, value) =>
                       setFilters({ ...filters, min_score: value as number })
                     }
                     valueLabelDisplay="auto"
@@ -384,7 +386,7 @@ const SearchPage: React.FC = () => {
                     >
                       View Document
                     </Button>
-                    <Button size="small">Find Similar</Button>
+                    <Button size="small" onClick={() => setSimilarFor(result.id)}>Find Similar</Button>
                   </CardActions>
                 </Card>
               </Grid>
@@ -396,7 +398,7 @@ const SearchPage: React.FC = () => {
               <Pagination
                 count={Math.ceil(totalResults / resultsPerPage)}
                 page={page}
-                onChange={(e, value) => setPage(value)}
+                onChange={(_e, value) => setPage(value)}
                 color="primary"
               />
             </Box>
@@ -408,6 +410,36 @@ const SearchPage: React.FC = () => {
         <Alert severity="info">
           No documents found matching your search criteria. Try adjusting your query or filters.
         </Alert>
+      )}
+
+      {/* Similar Documents Dialog */}
+      {similarFor && (
+        <Paper sx={{ p: 2, mt: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">Similar Documents</Typography>
+            <Button onClick={() => setSimilarFor(null)}>Close</Button>
+          </Box>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            {(similarData?.similar_documents || []).map((doc: any) => (
+              <Grid key={doc.id} item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="subtitle1">{doc.title || doc.filename || doc.id}</Typography>
+                    <Typography variant="body2" color="text.secondary">{doc.snippet || ''}</Typography>
+                  </CardContent>
+                  <CardActions>
+                    <Button size="small" onClick={() => navigate(`/document/${doc.id}`)}>View</Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+            {(!similarData || (similarData?.similar_documents || []).length === 0) && (
+              <Grid item xs={12}>
+                <Alert severity="info">No similar documents found.</Alert>
+              </Grid>
+            )}
+          </Grid>
+        </Paper>
       )}
     </Box>
   )

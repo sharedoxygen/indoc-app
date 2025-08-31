@@ -84,7 +84,7 @@ const UploadPage: React.FC = () => {
 
   const handleUpload = async () => {
     const pendingFiles = files.filter((f) => f.status === 'pending')
-    
+
     for (const uploadFile of pendingFiles) {
       setFiles((prev) =>
         prev.map((f) =>
@@ -102,7 +102,7 @@ const UploadPage: React.FC = () => {
 
       try {
         const response = await uploadDocument(formData).unwrap()
-        
+
         setFiles((prev) =>
           prev.map((f) =>
             f.id === uploadFile.id
@@ -110,7 +110,10 @@ const UploadPage: React.FC = () => {
               : f
           )
         )
-        
+
+        setSelectedResult(response)
+        setShowResultModal(true)
+
         dispatch(
           showNotification({
             message: `${uploadFile.file.name} uploaded successfully`,
@@ -122,15 +125,15 @@ const UploadPage: React.FC = () => {
           prev.map((f) =>
             f.id === uploadFile.id
               ? {
-                  ...f,
-                  status: 'error',
-                  progress: 0,
-                  error: error.data?.detail || 'Upload failed',
-                }
+                ...f,
+                status: 'error',
+                progress: 0,
+                error: error.data?.detail || 'Upload failed',
+              }
               : f
           )
         )
-        
+
         dispatch(
           showNotification({
             message: `Failed to upload ${uploadFile.file.name}`,

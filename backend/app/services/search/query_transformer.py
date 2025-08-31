@@ -19,7 +19,7 @@ class QueryTransformer:
             "search": ["find", "look for", "query"],
         }
     
-    async def transform_query(self, query: str) -> Dict[str, Any]:
+    async def transform(self, query: str) -> Dict[str, Any]:
         """
         Transform a natural language query into structured search parameters
         
@@ -32,6 +32,8 @@ class QueryTransformer:
         try:
             # Basic transformation - can be enhanced with NLP
             transformed = {
+                "keyword_queries": [query],  # For Elasticsearch
+                "semantic_queries": [query], # For Weaviate
                 "original_query": query,
                 "expanded_query": self._expand_with_synonyms(query),
                 "keywords": self._extract_keywords(query),
@@ -44,6 +46,8 @@ class QueryTransformer:
         except Exception as e:
             logger.error(f"Error transforming query: {e}")
             return {
+                "keyword_queries": [query],  # For Elasticsearch
+                "semantic_queries": [query], # For Weaviate
                 "original_query": query,
                 "expanded_query": query,
                 "keywords": [query],

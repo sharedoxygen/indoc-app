@@ -43,7 +43,7 @@ async def get_admin_settings(
     """Get admin settings (requires admin role)"""
     
     # Only admins can view admin settings
-    if current_user.role != "Admin":
+    if getattr(current_user.role, "value", current_user.role) != "Admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can view admin settings"
@@ -88,7 +88,7 @@ async def update_admin_settings(
     """Update admin settings (requires admin role)"""
     
     # Only admins can update settings
-    if current_user.role != "Admin":
+    if getattr(current_user.role, "value", current_user.role) != "Admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can update settings"

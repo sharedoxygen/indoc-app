@@ -1,23 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Box, 
-  Paper, 
-  TextField, 
-  IconButton, 
+import {
+  Box,
+  Paper,
+  TextField,
+  IconButton,
   Typography,
   List,
   ListItem,
-  ListItemText,
   Avatar,
   CircularProgress,
   Divider,
   Chip
 } from '@mui/material';
-import { 
-  Send as SendIcon, 
+import {
+  Send as SendIcon,
   AttachFile as AttachFileIcon,
   Person as PersonIcon,
-  SmartToy as BotIcon 
+  SmartToy as BotIcon
 } from '@mui/icons-material';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
@@ -45,7 +44,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(initialConversationId);
   const [isTyping, setIsTyping] = useState(false);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { sendMessage, lastMessage, readyState } = useWebSocket(
     conversationId ? `/api/v1/chat/ws/chat/${conversationId}` : null
@@ -62,7 +61,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   useEffect(() => {
     if (lastMessage) {
       const data = JSON.parse(lastMessage.data);
-      
+
       switch (data.type) {
         case 'message':
           setMessages(prev => [...prev, data.message]);
@@ -95,7 +94,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages || []);
@@ -144,12 +143,12 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
 
         if (response.ok) {
           const data = await response.json();
-          
+
           if (!conversationId && data.conversation_id) {
             setConversationId(data.conversation_id);
             onNewConversation?.(data.conversation_id);
           }
-          
+
           setMessages(prev => [...prev, data.response]);
         }
       }
@@ -175,10 +174,10 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           {documentId ? 'Document Chat' : 'AI Assistant'}
         </Typography>
         {documentId && (
-          <Chip 
-            icon={<AttachFileIcon />} 
-            label="Document attached" 
-            size="small" 
+          <Chip
+            icon={<AttachFileIcon />}
+            label="Document attached"
+            size="small"
             color="primary"
             sx={{ mt: 1 }}
           />
@@ -196,12 +195,12 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
                 gap: 1
               }}
             >
-              <Avatar sx={{ 
-                bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main' 
+              <Avatar sx={{
+                bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main'
               }}>
                 {message.role === 'user' ? <PersonIcon /> : <BotIcon />}
               </Avatar>
-              
+
               <Paper
                 elevation={1}
                 sx={{
@@ -220,7 +219,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               </Paper>
             </ListItem>
           ))}
-          
+
           {isTyping && (
             <ListItem>
               <Avatar sx={{ bgcolor: 'secondary.main' }}>
@@ -252,8 +251,8 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           onKeyPress={handleKeyPress}
           disabled={isLoading}
         />
-        <IconButton 
-          color="primary" 
+        <IconButton
+          color="primary"
           onClick={handleSendMessage}
           disabled={isLoading || !inputMessage.trim()}
         >

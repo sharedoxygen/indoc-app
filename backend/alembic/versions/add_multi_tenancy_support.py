@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_multi_tenancy_001'
-down_revision = None
+down_revision = '001'
 branch_labels = None
 depends_on = None
 
@@ -47,10 +47,10 @@ def upgrade():
     op.create_table('conversations',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('document_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('document_id', sa.Integer(), nullable=True),
         sa.Column('title', sa.String(255), nullable=True),
-        sa.Column('metadata', sa.JSON(), nullable=True),
+        sa.Column('conversation_metadata', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -68,7 +68,7 @@ def upgrade():
         sa.Column('conversation_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('role', sa.String(20), nullable=False),
         sa.Column('content', sa.Text(), nullable=False),
-        sa.Column('metadata', sa.JSON(), nullable=True),
+        sa.Column('message_metadata', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['conversation_id'], ['conversations.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
