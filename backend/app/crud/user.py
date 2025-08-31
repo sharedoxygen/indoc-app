@@ -3,7 +3,7 @@ CRUD operations for User management
 """
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session
 
 from app.models.user import User, UserRole

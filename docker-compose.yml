@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # REMOVED PostgreSQL - Using existing localhost:5432 instance
   # Make sure your existing PostgreSQL has:
@@ -12,13 +10,14 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
     ports:
-      - "9200:9200"
+      - '9200:9200'
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test:
+        ['CMD-SHELL', 'curl -f http://localhost:9200/_cluster/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -34,11 +33,11 @@ services:
       ENABLE_MODULES: 'text2vec-transformers'
       TRANSFORMERS_INFERENCE_API: 'http://t2v-transformers:8080'
     ports:
-      - "8060:8080"  # Changed from 8080:8080 to avoid conflict with Java process
+      - '8060:8080' # Changed from 8080:8080 to avoid conflict with Java process
     volumes:
       - weaviate_data:/var/lib/weaviate
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/.well-known/ready"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/v1/.well-known/ready']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -53,11 +52,11 @@ services:
     image: redis:7-alpine
     container_name: indoc-redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,7 +74,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     depends_on:
       - redis
     volumes:
@@ -94,7 +93,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     depends_on:
       - redis
     volumes:
@@ -105,7 +104,7 @@ services:
     container_name: indoc-flower
     command: celery --broker=redis://redis:6379/0 flower --port=5555
     ports:
-      - "5555:5555"
+      - '5555:5555'
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -116,7 +115,7 @@ services:
     image: prom/prometheus:latest
     container_name: indoc-prometheus
     ports:
-      - "9090:9090"
+      - '9090:9090'
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -128,7 +127,7 @@ services:
     image: grafana/grafana:latest
     container_name: indoc-grafana
     ports:
-      - "3030:3000"  # Changed from 3000:3000 to avoid conflict
+      - '3030:3000' # Changed from 3000:3000 to avoid conflict
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_INSTALL_PLUGINS=redis-datasource

@@ -1,6 +1,7 @@
 """
 Conversation service for document chat functionality
 """
+import logging
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 from datetime import datetime
@@ -9,6 +10,8 @@ from sqlalchemy import and_, desc
 import json
 import asyncio
 from fastapi import HTTPException, status
+
+logger = logging.getLogger(__name__)
 
 from app.models.conversation import Conversation, Message
 from app.models.document import Document
@@ -264,29 +267,81 @@ class ConversationService:
         context: str,
         stream: bool = False
     ) -> str:
-        """Generate response using LLM"""
-        
-        # Prepare prompt with context
-        prompt = f"""You are a helpful assistant for document analysis and Q&A.
-        
-Context:
-{context}
-
-User Question: {query}
-
-Please provide a helpful and accurate response based on the context provided. If the context doesn't contain relevant information, indicate that and provide a general response."""
-        
+        """Generate response using LLM service"""
         try:
-            # Use MCP client to generate response
-            response = await self.mcp_client.generate_response(
-                prompt=prompt,
-                stream=stream
-            )
+            from app.services.llm_service import LLMService
+            llm_service = LLMService()
             
-            return response
+            # Check if Ollama is available
+            if not await llm_service.check_ollama_connection():
+                return "I'm unable to connect to the language model right now. Please ensure Ollama is running and try again."
+            
+            # Handle different types of queries
+            if any(word in query.lower() for word in ['summary', 'summarize', 'sum up']):
+                # Extract document content from context for summarization
+                if context and 'Document Context:' in context:
+                    doc_content = context.split('Document Context:')[1].split('Recent conversation:')[0].strip()
+                    return await llm_service.summarize_document(doc_content)
+            
+            elif any(word in query.lower() for word in ['sentiment', 'tone', 'feeling', 'emotion']):
+                # Sentiment analysis
+                if context and 'Document Context:' in context:
+                    doc_content = context.split('Document Context:')[1].split('Recent conversation:')[0].strip()
+                    sentiment_result = await llm_service.analyze_sentiment(doc_content)
+                    return sentiment_result.get('analysis', 'Unable to analyze sentiment.')
+            
+            elif any(word in query.lower() for word in ['key points', 'main points', 'important', 'highlights']):
+                # Key points extraction
+                if context and 'Document Context:' in context:
+                    doc_content = context.split('Document Context:')[1].split('Recent conversation:')[0].strip()
+                    key_points = await llm_service.extract_key_points(doc_content)
+                    if key_points:
+                        return "Here are the key points from the document:\n\n" + "\n".join([f"• {point}" for point in key_points])
+                    else:
+                        return "I couldn't extract specific key points from the document."
+            
+            elif any(word in query.lower() for word in ['entities', 'people', 'names', 'organizations', 'companies']):
+                # Entity extraction
+                if context and 'Document Context:' in context:
+                    doc_content = context.split('Document Context:')[1].split('Recent conversation:')[0].strip()
+                    entities = await llm_service.extract_entities(doc_content)
+                    
+                    response_parts = ["Here are the entities I found in the document:"]
+                    for entity_type, items in entities.items():
+                        if items:
+                            response_parts.append(f"\n**{entity_type.title()}:** {', '.join(items)}")
+                    
+                    return "\n".join(response_parts) if len(response_parts) > 1 else "I couldn't find specific entities in the document."
+            
+            # Default: general question answering
+            conversation_history = []
+            if context and 'Recent conversation:' in context:
+                history_text = context.split('Recent conversation:')[1]
+                # Parse conversation history (simplified)
+                for line in history_text.split('\n'):
+                    if ':' in line and line.strip():
+                        role, content = line.split(':', 1)
+                        conversation_history.append({
+                            "role": role.strip().lower(),
+                            "content": content.strip()
+                        })
+            
+            # Extract documents from context
+            documents = []
+            if context and 'Relevant document sections:' in context:
+                doc_sections = context.split('Relevant document sections:')[1].split('Recent conversation:')[0]
+                for line in doc_sections.split('\n'):
+                    if line.startswith('- '):
+                        documents.append({
+                            "content": line[2:],  # Remove "- " prefix
+                            "title": "Document Section"
+                        })
+            
+            return await llm_service.answer_question(query, documents, conversation_history)
+            
         except Exception as e:
-            # Fallback response if LLM fails
-            return f"I apologize, but I'm having trouble generating a response right now. Error: {str(e)}"
+            logger.error(f"Error generating response: {e}")
+            return "I encountered an error while processing your request. Please try again."
     
     async def delete_conversation(
         self,

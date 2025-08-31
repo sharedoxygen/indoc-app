@@ -18,7 +18,19 @@ depends_on = None
 
 def upgrade() -> None:
     # Create enum types
-    op.execute("CREATE TYPE user_role AS ENUM ('Admin', 'Reviewer', 'Uploader', 'Viewer', 'Compliance')")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_type WHERE typname = 'user_role'
+            ) THEN
+                CREATE TYPE user_role AS ENUM ('Admin', 'Reviewer', 'Uploader', 'Viewer', 'Compliance');
+            END IF;
+        END
+        $$;
+        """
+    )
     
     # Create users table
     op.create_table('users',
@@ -27,7 +39,7 @@ def upgrade() -> None:
         sa.Column('username', sa.String(length=100), nullable=False),
         sa.Column('full_name', sa.String(length=255), nullable=True),
         sa.Column('hashed_password', sa.String(length=255), nullable=False),
-        sa.Column('role', postgresql.ENUM('Admin', 'Reviewer', 'Uploader', 'Viewer', 'Compliance', name='user_role'), nullable=False),
+        sa.Column('role', postgresql.ENUM('Admin', 'Reviewer', 'Uploader', 'Viewer', 'Compliance', name='user_role', create_type=False), nullable=False),
         sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
         sa.Column('is_verified', sa.Boolean(), nullable=False, default=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -181,4 +193,4 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_users_username'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
-    op.execute('DROP TYPE user_role')
+    op.execute("DROP TYPE IF EXISTS user_role")

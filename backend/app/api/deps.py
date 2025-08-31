@@ -11,6 +11,7 @@ from jose import JWTError, jwt
 from app.db.session import AsyncSessionLocal
 from app.core.config import settings
 from app.models.user import User
+from app.core.security import require_admin, require_uploader, require_viewer, require_reviewer, require_compliance
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/login")
 

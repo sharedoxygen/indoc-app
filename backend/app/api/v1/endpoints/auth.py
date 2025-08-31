@@ -58,7 +58,7 @@ async def register(
     audit_log = AuditLog(
         user_id=user.id,
         user_email=user.email,
-        user_role=user.role,
+        user_role=getattr(user.role, "value", user.role),
         action="register",
         resource_type="user",
         resource_id=str(user.id)
@@ -71,7 +71,7 @@ async def register(
         email=user.email,
         username=user.username,
         full_name=user.full_name,
-        role=user.role,
+        role=getattr(user.role, "value", user.role),
         is_active=user.is_active,
         is_verified=user.is_verified
     )
@@ -108,7 +108,7 @@ async def login(
     # Create access token
     access_token_expires = timedelta(minutes=settings.JWT_EXPIRATION_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(user.id), "role": user.role},
+        data={"sub": str(user.id), "role": getattr(user.role, "value", user.role)},
         expires_delta=access_token_expires
     )
     
@@ -116,7 +116,7 @@ async def login(
     audit_log = AuditLog(
         user_id=user.id,
         user_email=user.email,
-        user_role=user.role,
+        user_role=getattr(user.role, "value", user.role),
         action="login",
         resource_type="auth",
         resource_id=str(user.id)
@@ -140,7 +140,7 @@ async def get_current_user_info(
         email=current_user.email,
         username=current_user.username,
         full_name=current_user.full_name,
-        role=current_user.role,
+        role=getattr(current_user.role, "value", current_user.role),
         is_active=current_user.is_active,
         is_verified=current_user.is_verified
     )
@@ -156,7 +156,7 @@ async def logout(
     audit_log = AuditLog(
         user_id=current_user.id,
         user_email=current_user.email,
-        user_role=current_user.role,
+        user_role=getattr(current_user.role, "value", current_user.role),
         action="logout",
         resource_type="auth",
         resource_id=str(current_user.id)

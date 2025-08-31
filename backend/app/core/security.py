@@ -30,12 +30,22 @@ class FieldEncryption:
     """Handle field-level encryption for sensitive data"""
     
     def __init__(self):
-        if settings.FIELD_ENCRYPTION_KEY:
-            self.cipher = Fernet(settings.FIELD_ENCRYPTION_KEY.encode()[:32].ljust(32, b'0'))
-        else:
-            # Generate a key for development
+        # Import here to avoid circular imports
+        from app.core.key_management import key_manager
+        
+        # Get production-grade encryption key
+        encryption_key = key_manager.get_or_create_field_encryption_key()
+        
+        try:
+            # Key should be base64 encoded
+            key_bytes = base64.urlsafe_b64decode(encryption_key.encode())
+            self.cipher = Fernet(key_bytes)
+        except Exception as e:
+            logger.error(f"Failed to initialize field encryption: {e}")
+            # Fallback: generate new key for this session only
             key = Fernet.generate_key()
             self.cipher = Fernet(key)
+            logger.warning("Using temporary encryption key - data may not be recoverable!")
     
     def encrypt(self, data: str) -> str:
         """Encrypt a string"""

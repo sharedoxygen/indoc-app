@@ -51,13 +51,13 @@ class SearchProvider:
         # Elasticsearch keyword search
         for q in transformed_queries.get("keyword_queries", [query]):
             search_tasks.append(
-                self.es_service.search(q, filters, limit * 2)
+                self.es_service.search(q, limit * 2, filters)
             )
         
         # Weaviate vector search
         for q in transformed_queries.get("semantic_queries", [query]):
             search_tasks.append(
-                self.weaviate_service.search(q, filters, limit * 2)
+                self.weaviate_service.vector_search(q, limit * 2, filters)
             )
         
         # Wait for all searches to complete
@@ -172,6 +172,16 @@ class SearchProvider:
         for result_set in search_results:
             if isinstance(result_set, Exception):
                 continue  # Skip failed searches
+            
+            # Handle list of results from search services
+            if isinstance(result_set, list):
+                for result in result_set:
+                    if isinstance(result, dict) and result.get("id"):
+                        doc_id = result["id"]
+                        # Keep highest score for each document
+                        if doc_id not in merged or result.get("score", 0) > merged[doc_id].get("score", 0):
+                            merged[doc_id] = result
+                continue
             
             if not isinstance(result_set, dict):
                 continue

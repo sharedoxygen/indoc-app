@@ -11,7 +11,10 @@ from app.api.v1.endpoints import (
     mcp,
     metadata,
     audit,
-    settings
+    settings,
+    analytics,
+    llm,
+    chat
 )
 
 api_router = APIRouter()
@@ -25,3 +28,6 @@ api_router.include_router(mcp.router, prefix="/mcp", tags=["MCP"])
 api_router.include_router(metadata.router, prefix="/metadata", tags=["Metadata"])
 api_router.include_router(audit.router, prefix="/audit", tags=["Audit"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Settings"])
+api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+api_router.include_router(llm.router, prefix="/llm", tags=["LLM"])
+api_router.include_router(chat.router, prefix="/chat", tags=["Chat"])

@@ -12,6 +12,7 @@ from app.db.session import SessionLocal
 from app.models.document import Document
 from app.services.text_extraction_service import TextExtractionService
 from app.services.search_service import SearchService
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
     
     try:
         # Get document from database
-        document = self.db.query(Document).filter(Document.id == document_id).first()
+        document = self.db.query(Document).filter(Document.uuid == document_id).first()
         
         if not document:
             logger.error(f"Document {document_id} not found")
@@ -48,32 +49,69 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
         document.processing_status = "processing"
         self.db.commit()
         
-        # Extract text
+        # Extract text (sync wrapper)
         text_service = TextExtractionService()
-        extracted_text = text_service.extract_text(document.file_path, document.mime_type)
+        extracted = text_service.extract_text_sync(Path(document.storage_path))
         
-        if extracted_text:
-            document.extracted_text = extracted_text
+        if extracted and extracted.get("success"):
+            document.full_text = extracted.get("text", "")
             document.processing_status = "text_extracted"
             self.db.commit()
             
             # Index in search engines
-            search_service = SearchService(self.db)
+            from app.services.search.elasticsearch_service import ElasticsearchService
+            from app.services.search.weaviate_service import WeaviateService
             
-            # Index in Elasticsearch
-            search_service.index_document_elasticsearch(document)
+            # Prepare metadata
+            metadata = {
+                "filename": document.filename,
+                "title": document.title or document.filename,
+                "description": document.description or "",
+                "file_type": document.file_type,
+                "tags": document.tags or [],
+                "uploaded_by": str(document.uploaded_by),
+                "created_at": document.created_at.isoformat(),
+                "updated_at": document.updated_at.isoformat() if document.updated_at else document.created_at.isoformat(),
+                "file_size": document.file_size
+            }
             
-            # Generate embeddings and index in Weaviate
-            search_service.index_document_weaviate(document)
+            # Index in search engines (sync wrapper for async services)
+            try:
+                import asyncio
+                from app.services.search.elasticsearch_service import ElasticsearchService
+                from app.services.search.weaviate_service import WeaviateService
+                
+                async def index_document():
+                    # Index in Elasticsearch
+                    try:
+                        es_service = ElasticsearchService()
+                        es_success = await es_service.index_document(str(document.uuid), document.full_text, metadata)
+                        logger.info(f"Elasticsearch indexing: {'success' if es_success else 'failed'}")
+                    except Exception as e:
+                        logger.error(f"Elasticsearch indexing error: {e}")
+                    
+                    # Index in Weaviate  
+                    try:
+                        weaviate_service = WeaviateService()
+                        weaviate_success = await weaviate_service.add_document(str(document.uuid), document.full_text, metadata)
+                        logger.info(f"Weaviate indexing: {'success' if weaviate_success else 'failed'}")
+                    except Exception as e:
+                        logger.error(f"Weaviate indexing error: {e}")
+                
+                # Run async indexing in sync context
+                asyncio.run(index_document())
+                
+            except Exception as e:
+                logger.error(f"Search indexing failed: {e}")
             
+            document.status = "indexed"  # Update main status
             document.processing_status = "completed"
-            document.is_indexed = True
             self.db.commit()
             
             return {
                 "status": "success",
                 "document_id": str(document_id),
-                "text_length": len(extracted_text)
+                "text_length": len(document.full_text or "")
             }
         else:
             document.processing_status = "failed"

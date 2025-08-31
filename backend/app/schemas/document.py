@@ -2,8 +2,9 @@
 Document schemas
 """
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
+import uuid
 
 
 class DocumentBase(BaseModel):
@@ -23,12 +24,13 @@ class DocumentUpdate(DocumentBase):
 class DocumentResponse(DocumentBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
-    uuid: str
+    uuid: Union[str, uuid.UUID]
     filename: str
     file_type: str
     file_size: int
     status: str
     virus_scan_status: str
+    full_text: str | None = None
     created_at: datetime
     updated_at: datetime
 

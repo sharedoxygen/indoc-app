@@ -1,8 +1,9 @@
 """
 Authentication schemas
 """
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from typing import Optional
+import re
 
 
 class Token(BaseModel):
@@ -15,9 +16,18 @@ class TokenData(BaseModel):
 
 
 class UserBase(BaseModel):
-    email: EmailStr
+    email: str
     username: str
     full_name: Optional[str] = None
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        # Allow .local domains for development
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.local$'
+        if not re.match(email_pattern, v):
+            raise ValueError('Invalid email format')
+        return v
 
 
 class UserCreate(UserBase):

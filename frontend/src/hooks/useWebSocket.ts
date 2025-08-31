@@ -12,7 +12,7 @@ export const useWebSocket = (url: string | null): WebSocketHook => {
   const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
   const [readyState, setReadyState] = useState<number>(WebSocket.CLOSED);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
 
   const connect = useCallback(() => {

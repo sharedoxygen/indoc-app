@@ -12,13 +12,13 @@
 
 ---
 
-## 👤 inDoc Application Admin User
+## 👤 inDoc Application Users
 
 **URL:** http://localhost:5173 (Frontend) or http://localhost:8000/api/v1/docs (API)
 
-### Super Admin (Multi-Tenant Visibility)
+### Default Admin User
 - **Email:** `admin@indoc.local`
-- **Password:** `admin123`
+- **Password:** *Randomly generated during database initialization*
 - **Role:** Admin
 - **Capabilities:**
   - Full system administration
@@ -30,12 +30,14 @@
 
 ### Other Default Users
 
-| Email | Password | Role | Description |
-|-------|----------|------|-------------|
-| `reviewer@indoc.local` | `admin123` | Reviewer | Document review and approval |
-| `uploader@indoc.local` | `admin123` | Uploader | Document upload and basic management |
-| `viewer@indoc.local` | `admin123` | Viewer | Read-only access |
-| `compliance@indoc.local` | `admin123` | Compliance | Audit and compliance monitoring |
+All user passwords are **randomly generated** for security. Check the database initialization output or set custom passwords via environment variables.
+
+| Email | Role | Description |
+|-------|------|-------------|
+| `reviewer@indoc.local` | Reviewer | Document review and approval |
+| `uploader@indoc.local` | Uploader | Document upload and basic management |
+| `viewer@indoc.local` | Viewer | Read-only access |
+| `compliance@indoc.local` | Compliance | Audit and compliance monitoring |
 
 ---
 
@@ -45,7 +47,7 @@
 - **Host:** localhost:5432
 - **Database:** indoc
 - **Username:** `indoc_user`
-- **Password:** `indoc_dev_password` (or what you set during setup)
+- **Password:** `indoc_dev_password` (or what you set in environment)
 
 ### Redis
 - **URL:** redis://localhost:6379
@@ -83,10 +85,10 @@
 To get an access token for API calls:
 
 ```bash
-# Login and get JWT token
+# Login and get JWT token (use actual password from init output)
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin@indoc.local&password=admin123"
+  -d "username=admin@indoc.local&password=YOUR_ACTUAL_PASSWORD"
 ```
 
 Response:
@@ -105,7 +107,22 @@ curl -X GET http://localhost:8000/api/v1/documents \
 
 ---
 
-## 🔄 Changing Default Passwords
+## 🔄 Setting Custom Passwords
+
+### Environment Variables (Recommended)
+Set passwords before database initialization:
+
+```bash
+# Set custom passwords
+export ADMIN_PASSWORD="your-secure-admin-password"
+export REVIEWER_PASSWORD="your-reviewer-password"
+export UPLOADER_PASSWORD="your-uploader-password"
+export VIEWER_PASSWORD="your-viewer-password"
+export COMPLIANCE_PASSWORD="your-compliance-password"
+
+# Initialize database
+make db-init
+```
 
 ### Grafana Admin Password
 1. Login with `admin/admin`
@@ -124,7 +141,7 @@ GRAFANA_PASSWORD=your_new_password
 # Via API
 POST /api/v1/users/change-password
 {
-  "current_password": "admin123",
+  "current_password": "current_password",
   "new_password": "your_new_secure_password"
 }
 ```
@@ -144,7 +161,7 @@ ALTER USER indoc_user WITH PASSWORD 'your_new_password';
 
 ## 🛡️ Security Recommendations
 
-1. **Change all default passwords** immediately in production
+1. **Set custom passwords** via environment variables before initialization
 2. **Use strong passwords** (min 12 characters, mixed case, numbers, symbols)
 3. **Enable 2FA** where possible (Grafana supports this)
 4. **Rotate passwords** regularly
@@ -155,19 +172,24 @@ ALTER USER indoc_user WITH PASSWORD 'your_new_password';
 
 ## 🚨 Troubleshooting Login Issues
 
+### Finding Generated Passwords
+Check the database initialization output:
+```bash
+make db-init
+# Look for the password output in the console
+```
+
+Or query the database:
+```sql
+SELECT email, role FROM users WHERE email = 'admin@indoc.local';
+```
+
 ### Grafana
 - Default is `admin/admin`
 - If changed and forgotten, reset via CLI:
   ```bash
   docker exec -it indoc-grafana grafana-cli admin reset-admin-password admin
   ```
-
-### Application Admin
-- Check if user exists in database:
-  ```sql
-  SELECT email, role FROM users WHERE email = 'admin@indoc.local';
-  ```
-- Reset password via database if needed
 
 ### Token Expiration
 - Default JWT expiration: 1440 minutes (24 hours)
@@ -177,7 +199,8 @@ ALTER USER indoc_user WITH PASSWORD 'your_new_password';
 
 ## 📝 Notes
 
-- All default passwords use `admin123` for demo purposes
-- Grafana uses `admin/admin` as per standard Grafana defaults
-- In production, use strong, unique passwords for each service
-- Consider using a secrets management system (e.g., HashiCorp Vault, AWS Secrets Manager)
+- **All passwords are randomly generated** for security by default
+- **Grafana** uses standard `admin/admin` defaults
+- **In production**, use strong, unique passwords for each service
+- **Consider using a secrets management system** (e.g., HashiCorp Vault, AWS Secrets Manager)
+- **Environment template** available at `tools/env.template`

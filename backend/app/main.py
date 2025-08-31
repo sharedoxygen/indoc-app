@@ -13,7 +13,8 @@ from app.db.session import async_engine
 from app.models.base import Base
 from app.middleware.audit import AuditMiddleware
 from app.middleware.telemetry import TelemetryMiddleware
-from app.api.v1.endpoints import chat, bulk_upload
+from app.core.monitoring import metrics_endpoint
+# from app.api.v1.endpoints import chat, bulk_upload  # Temporarily disabled
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -79,9 +80,12 @@ if settings.ENABLE_TELEMETRY:
 # Include API router
 app.include_router(api_router, prefix=settings.API_PREFIX)
 
-# Include WebSocket endpoints
-app.include_router(chat.router, prefix=f"{settings.API_PREFIX}/chat", tags=["chat"])
-app.include_router(bulk_upload.router, prefix=f"{settings.API_PREFIX}/files", tags=["bulk_upload"])
+# Prometheus metrics endpoint
+app.add_api_route(f"{settings.API_PREFIX}/metrics", metrics_endpoint, methods=["GET"], tags=["Monitoring"])
+
+# Include WebSocket endpoints - temporarily disabled
+# app.include_router(chat.router, prefix=f"{settings.API_PREFIX}/chat", tags=["chat"])
+# app.include_router(bulk_upload.router, prefix=f"{settings.API_PREFIX}/files", tags=["bulk_upload"])
 
 # Root endpoint
 @app.get("/")
@@ -100,3 +104,8 @@ async def health_check():
         "status": "healthy",
         "version": settings.APP_VERSION
     }
+
+# Test endpoint
+@app.get("/test-auth")
+async def test_auth():
+    return {"message": "Test endpoint working", "status": "ok"}
