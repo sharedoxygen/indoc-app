@@ -227,7 +227,7 @@ class AsyncConversationService:
                 conversation.id,
                 "assistant",
                 response_content,
-                metadata={"context_used": bool(context), "model": selected_model}
+                metadata={"context_used": bool(documents), "model": selected_model}
             )
             
             return ChatResponse(
