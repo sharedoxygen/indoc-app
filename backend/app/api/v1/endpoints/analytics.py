@@ -106,6 +106,47 @@ async def get_analytics_summary(
     }
 
 
+@router.get("/processing")
+async def get_processing_metrics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """Return processing queue analytics (real data, no hard-coding)."""
+    _require_admin(current_user)
+
+    # Processed total (indexed)
+    processed_total = (await db.execute(
+        select(func.count()).select_from(Document).where(Document.status == "indexed")
+    )).scalar() or 0
+
+    # Counts by status
+    status_counts_rows = (await db.execute(
+        select(Document.status, func.count()).group_by(Document.status)
+    )).all()
+    status_counts: Dict[str, int] = { (s or "unknown"): (c or 0) for s, c in status_counts_rows }
+
+    # Average time-to-process by type (created_at -> updated_at for indexed docs)
+    # Compute in seconds using extract(epoch from interval)
+    ttp_rows = (await db.execute(
+        select(
+            Document.file_type,
+            func.avg(func.extract('epoch', Document.updated_at - Document.created_at))
+        )
+        .where(Document.status == "indexed")
+        .group_by(Document.file_type)
+    )).all()
+    avg_seconds_by_type = [
+        {"file_type": (ft or "unknown"), "avg_seconds": float(sec or 0)}
+        for ft, sec in ttp_rows
+    ]
+
+    return {
+        "processed_total": int(processed_total),
+        "status_counts": status_counts,
+        "avg_time_to_process_by_type": avg_seconds_by_type,
+    }
+
+
 @router.get("/storage")
 async def get_storage_breakdown(
     current_user: User = Depends(get_current_user),

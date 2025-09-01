@@ -78,6 +78,9 @@ export const api = createApi({
     getAnalyticsTimeseries: builder.query<any, { days?: number }>({
       query: ({ days = 30 } = {}) => `/analytics/timeseries?days=${days}`,
     }),
+    getProcessingAnalytics: builder.query<any, void>({
+      query: () => `/analytics/processing`,
+    }),
     updateDocument: builder.mutation({
       query: ({ id, ...data }) => ({
         url: `/files/${id}`,
@@ -209,4 +212,5 @@ export const {
   useGetAnalyticsSummaryQuery,
   useGetAnalyticsStorageQuery,
   useGetAnalyticsTimeseriesQuery,
+  useGetProcessingAnalyticsQuery,
 } = api
