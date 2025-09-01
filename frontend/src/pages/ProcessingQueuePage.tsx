@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Box,
     Paper,
@@ -21,7 +21,11 @@ import {
     DialogActions,
     Tabs,
     Tab,
-    Badge
+    Badge,
+    Toolbar,
+    TextField,
+    InputAdornment,
+    Checkbox
 } from '@mui/material';
 import {
     Description as DocumentIcon,
@@ -32,7 +36,12 @@ import {
     Refresh as RetryIcon,
     Delete as DeleteIcon,
     Visibility as ViewIcon,
-    CleaningServices as CleanupIcon
+    CleaningServices as CleanupIcon,
+    RestartAlt as BulkRetryIcon,
+    PauseCircle as PauseIcon,
+    Cancel as CancelIcon,
+    FilterList as FilterIcon,
+    Search as SearchIcon
 } from '@mui/icons-material';
 import { useGetDocumentsQuery, useDeleteDocumentMutation, useRetryDocumentMutation } from '../store/api';
 
@@ -58,6 +67,8 @@ const ProcessingQueuePage: React.FC = () => {
     const [selected, setSelected] = useState<Record<string, boolean>>({});
     const [limit] = useState(20);
     const [tabValue, setTabValue] = useState(0);
+    const [query, setQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedDoc, setSelectedDoc] = useState<any>(null);
     const [confirmDialog, setConfirmDialog] = useState({ open: false, action: '', docId: '' });
@@ -73,9 +84,10 @@ const ProcessingQueuePage: React.FC = () => {
     const [retryDocument] = useRetryDocumentMutation();
 
     const allDocuments = documentsData?.documents || [];
-    const processingDocuments = allDocuments.filter((doc: any) => doc.status !== 'indexed');
-    const failedDocuments = allDocuments.filter((doc: any) => doc.status === 'failed');
-    const activeDocuments = allDocuments.filter((doc: any) =>
+    const filteredByQuery = useMemo(() => allDocuments.filter((d: any) => !query || d.filename?.toLowerCase().includes(query.toLowerCase())), [allDocuments, query]);
+    const processingDocuments = filteredByQuery.filter((doc: any) => doc.status !== 'indexed');
+    const failedDocuments = filteredByQuery.filter((doc: any) => doc.status === 'failed');
+    const activeDocuments = filteredByQuery.filter((doc: any) =>
         doc.status === 'uploaded' || doc.status === 'processing' || doc.status === 'text_extracted'
     );
 
@@ -123,6 +135,17 @@ const ProcessingQueuePage: React.FC = () => {
         }
     };
 
+    const handleBulkRetry = async () => {
+        const selectedIds = Object.entries(selected).filter(([_, v]) => v).map(([id]) => id);
+        if (selectedIds.length === 0) return;
+        for (const id of selectedIds) {
+            try { await retryDocument(id).unwrap(); } catch (e) { console.error('Retry failed', id, e); }
+        }
+        refetch();
+    };
+
+    const clearSelection = () => setSelected({});
+
     const getTabDocuments = () => {
         switch (tabValue) {
             case 0: return activeDocuments;
@@ -139,15 +162,25 @@ const ProcessingQueuePage: React.FC = () => {
                 <Typography variant="h4" sx={{ fontWeight: 700 }}>
                     Document Processing Queue
                 </Typography>
-                <Button
-                    variant="outlined"
-                    startIcon={<CleanupIcon />}
-                    onClick={() => handleBulkCleanup('failed')}
-                    disabled={failedDocuments.length === 0}
-                    color="error"
-                >
-                    Clean Failed ({failedDocuments.length})
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <TextField
+                        size="small"
+                        placeholder="Filter by name"
+                        value={query}
+                        onChange={(e)=>setQuery(e.target.value)}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+                    />
+                    <Button variant="outlined" startIcon={<FilterIcon />} onClick={()=>setStatusFilter(statusFilter==='all' ? 'active' : 'all')}>
+                        {statusFilter==='all' ? 'All' : 'Active'}
+                    </Button>
+                    <Button variant="outlined" startIcon={<CleanupIcon />} onClick={() => handleBulkCleanup('failed')} disabled={failedDocuments.length === 0} color="error">
+                        Clean Failed ({failedDocuments.length})
+                    </Button>
+                    <Button variant="contained" startIcon={<BulkRetryIcon />} onClick={handleBulkRetry} disabled={Object.values(selected).every(v=>!v)}>
+                        Retry Selected
+                    </Button>
+                    <Button variant="text" onClick={clearSelection}>Clear Selection</Button>
+                </Box>
             </Box>
 
             <Paper sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
@@ -194,15 +227,13 @@ const ProcessingQueuePage: React.FC = () => {
                                     <ListItem key={doc.uuid} divider secondaryAction={
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Chip icon={statusInfo.icon} label={statusInfo.label} color={statusInfo.color as any} variant="outlined" size="small" />
-                                            <IconButton size="small" onClick={(e)=>handleMenuOpen(e, doc)}>
+                                            <IconButton size="small" onClick={(e) => handleMenuOpen(e, doc)}>
                                                 <MoreVertIcon />
                                             </IconButton>
                                         </Box>
                                     }>
-                                        <ListItemIcon onClick={()=>setSelected(prev=>({...prev, [doc.uuid]: !prev[doc.uuid]}))} sx={{ cursor: 'pointer' }}>
-                                            <Badge color="primary" variant={isSelected ? 'dot' : 'standard'}>
-                                                <DocumentIcon />
-                                            </Badge>
+                                        <ListItemIcon onClick={() => setSelected(prev => ({ ...prev, [doc.uuid]: !prev[doc.uuid] }))} sx={{ cursor: 'pointer' }}>
+                                            <Checkbox edge="start" checked={isSelected} tabIndex={-1} disableRipple />
                                         </ListItemIcon>
                                         <ListItemText
                                             primary={doc.filename}

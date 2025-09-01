@@ -1,13 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { Box, Grid, Paper, Typography, TextField, InputAdornment } from '@mui/material';
+import React, { useMemo } from 'react';
+import { Box, Grid, Paper, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom'
 import { useGetAnalyticsSummaryQuery, useGetAnalyticsTimeseriesQuery, useGetAnalyticsStorageQuery, useGetProcessingAnalyticsQuery } from '../store/api';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts'
-import { Search as SearchIcon } from '@mui/icons-material'
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
   const { data: summary } = useGetAnalyticsSummaryQuery(undefined as any, { pollingInterval: 5000 })
   const { data: timeseries } = useGetAnalyticsTimeseriesQuery({ days: 30 } as any, { pollingInterval: 10000 })
   const { data: storage } = useGetAnalyticsStorageQuery(undefined as any, { pollingInterval: 15000 })
@@ -17,6 +15,21 @@ const DashboardPage: React.FC = () => {
   const views = useMemo(() => (timeseries?.views || []).map((d: any) => ({ day: d.day, views: d.count })), [timeseries])
   const searches = useMemo(() => (timeseries?.searches || []).map((d: any) => ({ day: d.day, searches: d.count })), [timeseries])
   const storageByType = useMemo(() => (storage?.by_type || []).map((r: any) => ({ name: (r.file_type || 'UNK').toUpperCase(), value: r.bytes })), [storage])
+
+  const formatSeconds = (totalSeconds: number) => {
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '0:00'
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = Math.round(totalSeconds % 60)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  const formatBytes = (bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    const idx = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+    const value = bytes / Math.pow(1024, idx)
+    return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[idx]}`
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -60,7 +73,7 @@ const DashboardPage: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="day" hide />
                 <YAxis />
-                <Tooltip />
+                <Tooltip labelFormatter={(label) => `Day ${label}`} formatter={(value: any, name) => [value, name]} />
                 <Legend />
                 <Line type="monotone" dataKey="uploads" stroke="#22C55E" dot={false} strokeWidth={2} />
                 <Line type="monotone" dataKey="views" stroke="#06B6D4" dot={false} strokeWidth={2} />
@@ -79,7 +92,7 @@ const DashboardPage: React.FC = () => {
                     <Cell key={i} fill={["#6366F1", "#22C55E", "#06B6D4", "#F59E0B", "#EF4444"][i % 5]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(v: any) => [formatBytes(Number(v)), 'Size']} />
               </PieChart>
             </ResponsiveContainer>
           </Paper>
@@ -105,13 +118,13 @@ const DashboardPage: React.FC = () => {
         </Grid>
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2, borderRadius: 3, height: 260 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Avg Time to Process (sec) by Type</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Avg Time to Process (mm:ss) by Type</Typography>
             <ResponsiveContainer width="100%" height="85%">
               <LineChart data={(processing?.avg_time_to_process_by_type || []).map((r: any) => ({ type: r.file_type, secs: r.avg_seconds }))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="type" />
-                <YAxis />
-                <Tooltip />
+                <YAxis tickFormatter={(v: any) => formatSeconds(Number(v))} />
+                <Tooltip formatter={(v: any) => [formatSeconds(Number(v)), 'Avg Time']} />
                 <Legend />
                 <Line type="monotone" dataKey="secs" stroke="#EF4444" dot />
               </LineChart>
