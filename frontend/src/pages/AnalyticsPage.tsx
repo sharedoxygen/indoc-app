@@ -2,19 +2,19 @@ import React, { useMemo } from 'react'
 import { Box, Paper, Typography, Grid, Chip, LinearProgress } from '@mui/material'
 import { useGetAnalyticsSummaryQuery, useGetAnalyticsStorageQuery, useGetAnalyticsTimeseriesQuery } from '../store/api'
 import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  Legend,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell
+    LineChart,
+    Line,
+    ResponsiveContainer,
+    CartesianGrid,
+    XAxis,
+    YAxis,
+    Tooltip as RechartsTooltip,
+    Legend,
+    BarChart,
+    Bar,
+    PieChart,
+    Pie,
+    Cell
 } from 'recharts'
 
 const bytesToSize = (bytes: number): string => {
@@ -49,14 +49,14 @@ const AnalyticsPage: React.FC = () => {
         const views = (timeseries?.views || []).map((d: any) => ({ day: d.day, views: d.count }))
         const searches = (timeseries?.searches || []).map((d: any) => ({ day: d.day, searches: d.count }))
         const map: Record<string, any> = {}
-        ;[...uploads, ...views, ...searches].forEach(p => {
-            map[p.day] = { day: p.day, ...(map[p.day] || {}), ...p }
-        })
+            ;[...uploads, ...views, ...searches].forEach(p => {
+                map[p.day] = { day: p.day, ...(map[p.day] || {}), ...p }
+            })
         return Object.values(map)
     }, [timeseries])
 
     return (
-        <Box>
+        <Box sx={{ pb: 4 }}>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, mb: 1 }}>
                 Analytics 📈
             </Typography>
@@ -108,7 +108,7 @@ const AnalyticsPage: React.FC = () => {
                                         <YAxis />
                                         <RechartsTooltip />
                                         <Legend />
-                                        <Bar dataKey="count" fill="#4F46E5" radius={[6,6,0,0]} />
+                                        <Bar dataKey="count" fill="#4F46E5" radius={[6, 6, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </Box>

@@ -221,7 +221,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   };
 
   return (
-    <Paper elevation={3} sx={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
+    <Paper elevation={3} sx={{ height: '720px', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -299,7 +299,8 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               key={message.id}
               sx={{
                 flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
-                gap: 1
+                gap: 1,
+                alignItems: 'flex-start'
               }}
             >
               <Avatar sx={{
@@ -312,12 +313,22 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
                 elevation={1}
                 sx={{
                   p: 2,
-                  maxWidth: '70%',
-                  bgcolor: message.role === 'user' ? 'primary.light' : 'grey.100',
-                  color: message.role === 'user' ? 'primary.contrastText' : 'text.primary'
+                  maxWidth: '78%',
+                  bgcolor: message.role === 'user' ? 'primary.light' : 'background.paper',
+                  color: message.role === 'user' ? 'primary.contrastText' : 'text.primary',
+                  border: message.role === 'assistant' ? 1 : 0,
+                  borderColor: 'divider',
+                  borderRadius: 2
                 }}
               >
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.6
+                  }}
+                >
                   {message.content}
                 </Typography>
                 <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.7 }}>
@@ -346,7 +357,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               <Avatar sx={{ bgcolor: 'secondary.main' }}>
                 <BotIcon />
               </Avatar>
-              <Paper elevation={1} sx={{ p: 2, maxWidth: '70%', bgcolor: 'grey.100' }}>
+              <Paper elevation={1} sx={{ p: 2, maxWidth: '78%', bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   {statusMessage || 'Generating answer…'}
                 </Typography>
