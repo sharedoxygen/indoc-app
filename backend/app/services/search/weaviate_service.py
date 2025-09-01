@@ -14,13 +14,18 @@ class WeaviateService:
     """Service for Weaviate vector search operations"""
     
     def __init__(self):
-        self.client = weaviate.Client(
-            url=settings.WEAVIATE_URL,
-            additional_headers={
-                "X-OpenAI-Api-Key": "not-needed",  # Using local transformers
-            }
-        )
+        """Initialize client; gracefully degrade if Weaviate is unavailable."""
+        self.client = None
         self.class_name = settings.WEAVIATE_CLASS
+        try:
+            self.client = weaviate.Client(
+                url=settings.WEAVIATE_URL,
+                additional_headers={
+                    "X-OpenAI-Api-Key": "not-needed",  # Using local transformers
+                }
+            )
+        except Exception as e:
+            logger.error(f"Weaviate initialization failed: {e}. Running in degraded mode (semantic search disabled).")
     
     async def vector_search(
         self,
@@ -40,6 +45,9 @@ class WeaviateService:
             List of search results with semantic similarity scores
         """
         try:
+            if not self.client:
+                logger.warning("Weaviate client not initialized; returning empty semantic results.")
+                return []
             # Build Weaviate query with semantic search
             where_filter = None
             
@@ -149,6 +157,9 @@ class WeaviateService:
             Success status
         """
         try:
+            if not self.client:
+                logger.warning("Weaviate client not initialized; skipping add_document.")
+                return False
             # Prepare document object for Weaviate
             doc_object = {
                 "document_id": document_id,
@@ -184,6 +195,9 @@ class WeaviateService:
         Ensure the Weaviate schema exists for documents
         """
         try:
+            if not self.client:
+                logger.warning("Weaviate client not initialized; cannot ensure schema.")
+                return False
             # Check if class exists
             existing_classes = self.client.schema.get()["classes"]
             class_names = [cls["class"] for cls in existing_classes]
@@ -273,6 +287,8 @@ class WeaviateService:
     async def health_check(self) -> Dict[str, Any]:
         """Check Weaviate cluster health"""
         try:
+            if not self.client:
+                return {"status": "unhealthy", "error": "weaviate_client_not_initialized"}
             meta = self.client.get_meta()
             return {
                 "status": "healthy",

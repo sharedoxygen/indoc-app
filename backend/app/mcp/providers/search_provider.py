@@ -17,7 +17,10 @@ class SearchProvider:
     
     def __init__(self):
         self.es_service = ElasticsearchService()
-        self.weaviate_service = WeaviateService()
+        try:
+            self.weaviate_service = WeaviateService()
+        except Exception:
+            self.weaviate_service = None
         self.reranker = Reranker()
         self.query_transformer = QueryTransformer()
     
@@ -54,11 +57,12 @@ class SearchProvider:
                 self.es_service.search(q, limit * 2, filters)
             )
         
-        # Weaviate vector search
-        for q in transformed_queries.get("semantic_queries", [query]):
-            search_tasks.append(
-                self.weaviate_service.vector_search(q, limit * 2, filters)
-            )
+        # Weaviate vector search (optional)
+        if self.weaviate_service:
+            for q in transformed_queries.get("semantic_queries", [query]):
+                search_tasks.append(
+                    self.weaviate_service.vector_search(q, limit * 2, filters)
+                )
         
         # Wait for all searches to complete
         search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
@@ -121,6 +125,8 @@ class SearchProvider:
         Returns:
             List of similar documents
         """
+        if not self.weaviate_service:
+            return []
         # Get document embedding from Weaviate
         document = await self.weaviate_service.get_document(document_id)
         if not document:
