@@ -77,9 +77,18 @@ const DocumentViewer: React.FC = () => {
           <Chip label={`Virus: ${doc?.virus_scan_status || '-'}`} size="small" color={doc?.virus_scan_status === 'clean' ? 'success' : 'warning'} />
         </Stack>
 
-        <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>Preview</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+        <Box sx={{ mt: 2, p: 3, bgcolor: 'background.default', borderRadius: 1 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Preview</Typography>
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'monospace',
+              lineHeight: 1.7,
+              fontSize: '1rem',
+            }}
+          >
             {doc?.full_text || 'No preview available.'}
           </Typography>
         </Box>

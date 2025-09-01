@@ -13,8 +13,15 @@ from app.models.document import Document
 from app.services.text_extraction_service import TextExtractionService
 from app.services.search_service import SearchService
 from pathlib import Path
+import asyncio
 
 logger = logging.getLogger(__name__)
+
+
+def run_async(coro):
+    """Helper to run async code in a sync Celery task"""
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(coro)
 
 
 class DocumentTask(Task):
@@ -46,7 +53,7 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
             return {"status": "error", "message": "Document not found"}
         
         # Update status
-        document.processing_status = "processing"
+        document.status = "processing"
         self.db.commit()
         
         # Extract text (sync wrapper)
@@ -55,7 +62,7 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
         
         if extracted and extracted.get("success"):
             document.full_text = extracted.get("text", "")
-            document.processing_status = "text_extracted"
+            document.status = "text_extracted"
             self.db.commit()
             
             # Index in search engines
@@ -77,7 +84,6 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
             
             # Index in search engines (sync wrapper for async services)
             try:
-                import asyncio
                 from app.services.search.elasticsearch_service import ElasticsearchService
                 from app.services.search.weaviate_service import WeaviateService
                 
@@ -99,13 +105,12 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
                         logger.error(f"Weaviate indexing error: {e}")
                 
                 # Run async indexing in sync context
-                asyncio.run(index_document())
+                run_async(index_document())
                 
             except Exception as e:
                 logger.error(f"Search indexing failed: {e}")
             
             document.status = "indexed"  # Update main status
-            document.processing_status = "completed"
             self.db.commit()
             
             return {
@@ -114,7 +119,7 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
                 "text_length": len(document.full_text or "")
             }
         else:
-            document.processing_status = "failed"
+            document.status = "failed"
             self.db.commit()
             return {
                 "status": "error",
@@ -125,7 +130,7 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
         logger.error(f"Error processing document {document_id}: {str(e)}")
         
         if document:
-            document.processing_status = "failed"
+            document.status = "failed"
             document.error_message = str(e)
             self.db.commit()
         

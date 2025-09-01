@@ -71,7 +71,7 @@ class ChatRequest(BaseModel):
     """Schema for chat request"""
     message: str
     conversation_id: Optional[UUID] = None
-    document_id: Optional[UUID] = None
+    document_ids: Optional[List[UUID]] = None
     stream: bool = False
 
 

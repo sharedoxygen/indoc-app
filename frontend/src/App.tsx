@@ -13,15 +13,13 @@ import AuthLayout from './layouts/AuthLayout'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import UploadPage from './pages/UploadPage'
-import SearchPage from './pages/SearchPage'
 import DocumentViewer from './pages/DocumentViewer'
-import DocumentChatPage from './pages/DocumentChatPage'
 import AuditTrailPage from './pages/AuditTrailPage'
 import RoleManagementPage from './pages/RoleManagementPage'
 import SettingsPage from './pages/SettingsPage'
 import DashboardPage from './pages/DashboardPage'
 import AnalyticsPage from './pages/AnalyticsPage'
-import DocumentsPage from './pages/DocumentsPage'
+import ProcessingQueuePage from './pages/ProcessingQueuePage'
 
 // Components
 import PrivateRoute from './components/PrivateRoute'
@@ -58,14 +56,12 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/upload" element={<UploadPage />} />
-            <Route path="/search" element={<SearchPage />} />
             <Route path="/document/:id" element={<DocumentViewer />} />
-            <Route path="/chat/:documentId" element={<DocumentChatPage />} />
             <Route path="/audit" element={<AuditTrailPage />} />
             <Route path="/users" element={<RoleManagementPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/processing-queue" element={<ProcessingQueuePage />} />
           </Route>
         </Route>
 

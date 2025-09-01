@@ -29,13 +29,13 @@ interface Message {
 }
 
 interface DocumentChatProps {
-  documentId?: string;
+  documentIds?: string[];
   conversationId?: string;
   onNewConversation?: (conversationId: string) => void;
 }
 
 export const DocumentChat: React.FC<DocumentChatProps> = ({
-  documentId,
+  documentIds,
   conversationId: initialConversationId,
   onNewConversation
 }) => {
@@ -136,7 +136,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           body: JSON.stringify({
             message: inputMessage,
             conversation_id: conversationId,
-            document_id: documentId,
+            document_ids: documentIds,
             stream: false
           })
         });
@@ -171,12 +171,14 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h6">
-          {documentId ? 'Document Chat' : 'AI Assistant'}
+          {documentIds && documentIds.length > 0
+            ? `Chat with ${documentIds.length} document(s)`
+            : 'AI Assistant'}
         </Typography>
-        {documentId && (
+        {documentIds && documentIds.length > 0 && (
           <Chip
             icon={<AttachFileIcon />}
-            label="Document attached"
+            label={`${documentIds.length} document(s) attached`}
             size="small"
             color="primary"
             sx={{ mt: 1 }}

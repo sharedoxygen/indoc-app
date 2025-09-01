@@ -42,10 +42,11 @@ class ConversationService:
     ) -> Conversation:
         """Create a new conversation"""
         
+        document_db_id = None
         # If document_id provided, verify it exists and user has access
         if document_id:
             document = self.db.query(Document).filter(
-                Document.id == document_id,
+                Document.uuid == document_id,
                 Document.tenant_id == tenant_id
             ).first()
             
@@ -55,6 +56,7 @@ class ConversationService:
                     detail="Document not found or access denied"
                 )
             
+            document_db_id = document.id
             if not title:
                 title = f"Chat with {document.filename}"
         
@@ -62,7 +64,7 @@ class ConversationService:
             id=uuid4(),
             tenant_id=tenant_id,
             user_id=user_id,
-            document_id=document_id,
+            document_id=document_db_id,
             title=title or "New Conversation",
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
@@ -183,9 +185,13 @@ class ConversationService:
             conversation = await self.create_conversation(
                 user_id,
                 tenant_id,
-                chat_request.document_id
+                document_id=chat_request.document_ids[0] if chat_request.document_ids else None
             )
-        
+            # Store all document IDs in the conversation's metadata
+            if chat_request.document_ids:
+                conversation.metadata = {"document_ids": [str(doc_id) for doc_id in chat_request.document_ids]}
+                self.db.commit()
+
         # Add user message
         user_message = await self.add_message(
             conversation.id,
@@ -226,28 +232,29 @@ class ConversationService:
         query: str
     ) -> str:
         """Build context for the conversation"""
-        
+
         context_parts = []
-        
+        document_ids_to_search = []
+
+        # Get document IDs from metadata if available
+        if 'document_ids' in conversation.metadata:
+            document_ids_to_search = [UUID(doc_id) for doc_id in conversation.metadata.get('document_ids', [])]
+        elif conversation.document_id:
+            document_ids_to_search.append(conversation.document_id)
+
         # Add document context if available
-        if conversation.document_id:
-            document = self.db.query(Document).filter(
-                Document.id == conversation.document_id
-            ).first()
-            
-            if document:
-                # Search for relevant sections in the document
-                search_results = await self.search_service.hybrid_search(
-                    query=query,
-                    document_ids=[str(document.id)],
-                    limit=3
-                )
-                
-                if search_results:
-                    context_parts.append("Relevant document sections:")
-                    for result in search_results[:3]:
-                        context_parts.append(f"- {result.get('content', '')[:500]}")
-        
+        if document_ids_to_search:
+            search_results = await self.search_service.hybrid_search(
+                query=query,
+                document_ids=[str(doc_id) for doc_id in document_ids_to_search],
+                limit=5  # Increase limit for multi-document search
+            )
+
+            if search_results:
+                context_parts.append("Relevant document sections:")
+                for result in search_results:
+                    context_parts.append(f"- {result.get('content', '')[:500]}")
+
         # Add recent conversation history
         recent_messages = await self.get_conversation_history(
             conversation.id,

@@ -91,7 +91,7 @@ class Settings(BaseSettings):
                 self.FIELD_ENCRYPTION_KEY = base64.urlsafe_b64encode(Fernet.generate_key()).decode()
     
     # Storage (no side effects here)
-    TEMP_REPO_PATH: Path = Path("/tmp/indoc_temp")
+    TEMP_REPO_PATH: Path = Path("./tmp/indoc_temp")
     STORAGE_PATH: Path = Path("./data/storage")
     MAX_UPLOAD_SIZE: int = 100 * 1024 * 1024  # 100MB
     ALLOWED_EXTENSIONS: List[str] = [

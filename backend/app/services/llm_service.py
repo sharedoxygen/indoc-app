@@ -146,6 +146,19 @@ Guidelines:
         prompt = f"Please provide a concise summary of the following document in no more than {max_length} words. Focus on the key points, main topics, and important information:\n\n{content[:4000]}"
         return await self.generate_response(prompt, temperature=0.3)
     
+    async def generate_title(self, content: str) -> str:
+        """
+        Generate a title for a document
+        
+        Args:
+            content: Document content to generate title from
+            
+        Returns:
+            Generated title
+        """
+        prompt = f"Please generate a concise and descriptive title for the following document. The title should be no more than 10 words:\n\n{content[:1000]}"
+        return await self.generate_response(prompt, temperature=0.5)
+
     async def analyze_sentiment(self, content: str) -> Dict[str, Any]:
         """
         Analyze the sentiment of document content

@@ -42,15 +42,15 @@ export const api = createApi({
 
     // Document endpoints
     getDocuments: builder.query({
-      query: ({ skip = 0, limit = 100, search, file_type, sort_by = 'created_at', sort_order = 'desc' }) => {
+      query: ({ skip = 0, limit = 10, search, file_type, sort_by, sort_order }) => {
         const params = new URLSearchParams({
           skip: skip.toString(),
           limit: limit.toString(),
-          sort_by,
-          sort_order,
         });
         if (search) params.append('search', search);
         if (file_type && file_type !== 'all') params.append('file_type', file_type);
+        if (sort_by) params.append('sort_by', sort_by);
+        if (sort_order) params.append('sort_order', sort_order);
         return `/files/list?${params.toString()}`;
       },
       providesTags: ['Document'],
@@ -61,7 +61,7 @@ export const api = createApi({
     }),
     uploadDocument: builder.mutation({
       query: (formData) => ({
-        url: '/files/upload',
+        url: '/files',
         method: 'POST',
         body: formData,
       }),

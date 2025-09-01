@@ -158,6 +158,24 @@ async def upload_file(
         content = await file.read()
         file_hash = hashlib.sha256(content).hexdigest()
         
+        # Check for duplicates by hash
+        existing_result = await db.execute(
+            select(Document).where(Document.file_hash == file_hash)
+        )
+        existing_doc = existing_result.scalar_one_or_none()
+        
+        if existing_doc:
+            return {
+                "error": "Duplicate file",
+                "message": f"File already exists: {existing_doc.filename}",
+                "existing_document": {
+                    "id": existing_doc.id,
+                    "uuid": str(existing_doc.uuid),
+                    "filename": existing_doc.filename,
+                    "uploaded_at": existing_doc.created_at.isoformat()
+                }
+            }
+        
         # Create a basic document record
         document = Document(
             filename=file.filename,

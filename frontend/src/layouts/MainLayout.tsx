@@ -27,6 +27,7 @@ import {
   Description as DocumentIcon,
   CloudUpload as UploadIcon,
   Search as SearchIcon,
+  Chat as ChatIcon,
   People as PeopleIcon,
   Settings as SettingsIcon,
   History as HistoryIcon,
@@ -35,12 +36,12 @@ import {
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
   Insights as InsightsIcon,
+  HourglassTop as HourglassTopIcon,
 } from '@mui/icons-material'
 import { useAppSelector, useAppDispatch } from '../hooks/redux'
 import { logout } from '../store/slices/authSlice'
 import { useThemeMode } from '../contexts/ThemeContext'
 import Logo from '../components/Logo'
-import { ProcessingStatusWidget } from '../components/ProcessingStatusWidget'
 
 const drawerWidth = 240
 
@@ -72,12 +73,11 @@ const MainLayout: React.FC = () => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['all'] },
-    { text: 'Analytics', icon: <InsightsIcon />, path: '/analytics', roles: ['Admin'] },
-    { text: 'Documents', icon: <DocumentIcon />, path: '/documents', roles: ['all'] },
     { text: 'Upload', icon: <UploadIcon />, path: '/upload', roles: ['Admin', 'Uploader', 'Reviewer'] },
-    { text: 'Search', icon: <SearchIcon />, path: '/search', roles: ['all'] },
-    { text: 'Audit Trail', icon: <HistoryIcon />, path: '/audit', roles: ['Admin', 'Compliance'] },
+    { text: 'Processing Queue', icon: <HourglassTopIcon />, path: '/processing-queue', roles: ['all'] },
+    { text: 'Analytics', icon: <InsightsIcon />, path: '/analytics', roles: ['Admin'] },
     { text: 'Users', icon: <PeopleIcon />, path: '/users', roles: ['Admin'] },
+    { text: 'Audit Trail', icon: <HistoryIcon />, path: '/audit', roles: ['Admin', 'Compliance'] },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings', roles: ['Admin'] },
   ]
 
@@ -260,8 +260,7 @@ const MainLayout: React.FC = () => {
         <Outlet />
       </Box>
 
-      {/* Real-time Document Processing Status Widget */}
-      <ProcessingStatusWidget />
+
     </Box>
   )
 }
