@@ -20,6 +20,7 @@ import SettingsPage from './pages/SettingsPage'
 import DashboardPage from './pages/DashboardPage'
 import ProcessingQueuePage from './pages/ProcessingQueuePage'
 import DocumentsPage from './pages/DocumentsPage'
+import ChatPage from './pages/ChatPage'
 
 // Components
 import PrivateRoute from './components/PrivateRoute'
@@ -57,6 +58,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/upload" element={<UploadPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/chat" element={<ChatPage />} />
             <Route path="/document/:id" element={<DocumentViewer />} />
             <Route path="/audit" element={<AuditTrailPage />} />
             <Route path="/users" element={<RoleManagementPage />} />

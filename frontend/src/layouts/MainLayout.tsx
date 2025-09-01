@@ -73,6 +73,7 @@ const MainLayout: React.FC = () => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['all'] },
+    { text: 'Chat', icon: <ChatIcon />, path: '/chat', roles: ['all'] },
     { text: 'Documents', icon: <DocumentIcon />, path: '/documents', roles: ['all'] },
     { text: 'Upload', icon: <UploadIcon />, path: '/upload', roles: ['Admin', 'Uploader', 'Reviewer'] },
     { text: 'Processing Queue', icon: <HourglassTopIcon />, path: '/processing-queue', roles: ['all'] },
