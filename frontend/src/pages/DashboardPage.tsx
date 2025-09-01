@@ -25,26 +25,26 @@ const DashboardPage: React.FC = () => {
       {/* Search removed per request */}
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={3} onClick={()=>navigate('/documents')} style={{ cursor: 'pointer' }}>
-          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+        <Grid item xs={12} md={3} onClick={() => navigate('/documents')} style={{ cursor: 'pointer' }}>
+          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'primary.main', color: 'primary.contrastText', transition: 'transform .12s ease, box-shadow .12s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: 6 } }}>
             <Typography variant="overline">Total Documents</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800 }}>{summary?.totals?.documents ?? 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'success.main', color: 'success.contrastText' }}>
+          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'success.main', color: 'success.contrastText', transition: 'transform .12s ease, box-shadow .12s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: 6 } }}>
             <Typography variant="overline">Uploads (30d)</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800 }}>{summary?.totals?.events?.uploads ?? 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'info.main', color: 'info.contrastText' }}>
+          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'info.main', color: 'info.contrastText', transition: 'transform .12s ease, box-shadow .12s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: 6 } }}>
             <Typography variant="overline">Views (30d)</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800 }}>{summary?.totals?.events?.views ?? 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'warning.main', color: 'warning.contrastText' }}>
+          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'warning.main', color: 'warning.contrastText', transition: 'transform .12s ease, box-shadow .12s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: 6 } }}>
             <Typography variant="overline">Processed (total)</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800 }}>{processing?.processed_total ?? 0}</Typography>
           </Paper>

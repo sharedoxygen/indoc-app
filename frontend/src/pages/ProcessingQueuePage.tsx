@@ -34,7 +34,7 @@ import {
     Visibility as ViewIcon,
     CleaningServices as CleanupIcon
 } from '@mui/icons-material';
-import { useGetDocumentsQuery, useDeleteDocumentMutation } from '../store/api';
+import { useGetDocumentsQuery, useDeleteDocumentMutation, useRetryDocumentMutation } from '../store/api';
 
 const getStatusInfo = (status: string) => {
     switch (status) {
@@ -55,6 +55,7 @@ const getStatusInfo = (status: string) => {
 
 const ProcessingQueuePage: React.FC = () => {
     const [page, setPage] = useState(1);
+    const [selected, setSelected] = useState<Record<string, boolean>>({});
     const [limit] = useState(20);
     const [tabValue, setTabValue] = useState(0);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -69,6 +70,7 @@ const ProcessingQueuePage: React.FC = () => {
     });
 
     const [deleteDocument] = useDeleteDocumentMutation();
+    const [retryDocument] = useRetryDocumentMutation();
 
     const allDocuments = documentsData?.documents || [];
     const processingDocuments = allDocuments.filter((doc: any) => doc.status !== 'indexed');
@@ -91,9 +93,7 @@ const ProcessingQueuePage: React.FC = () => {
 
     const handleRetryDocument = async (docId: string) => {
         try {
-            // Call retry endpoint (we'll need to implement this)
-            console.log(`Retrying document: ${docId}`);
-            // For now, just refresh the list
+            await retryDocument(docId).unwrap();
             refetch();
         } catch (error) {
             console.error('Failed to retry document:', error);
@@ -189,41 +189,32 @@ const ProcessingQueuePage: React.FC = () => {
                         <List>
                             {currentDocuments.map((doc: any) => {
                                 const statusInfo = getStatusInfo(doc.status);
+                                const isSelected = !!selected[doc.uuid];
                                 return (
-                                    <ListItem key={doc.uuid} divider>
-                                        <ListItemIcon>
-                                            <DocumentIcon />
+                                    <ListItem key={doc.uuid} divider secondaryAction={
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Chip icon={statusInfo.icon} label={statusInfo.label} color={statusInfo.color as any} variant="outlined" size="small" />
+                                            <IconButton size="small" onClick={(e)=>handleMenuOpen(e, doc)}>
+                                                <MoreVertIcon />
+                                            </IconButton>
+                                        </Box>
+                                    }>
+                                        <ListItemIcon onClick={()=>setSelected(prev=>({...prev, [doc.uuid]: !prev[doc.uuid]}))} sx={{ cursor: 'pointer' }}>
+                                            <Badge color="primary" variant={isSelected ? 'dot' : 'standard'}>
+                                                <DocumentIcon />
+                                            </Badge>
                                         </ListItemIcon>
                                         <ListItemText
                                             primary={doc.filename}
                                             secondary={
                                                 <Box>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        Status: {doc.status}
-                                                    </Typography>
+                                                    <Typography variant="body2" color="text.secondary">Status: {doc.status}</Typography>
                                                     {doc.error_message && (
-                                                        <Typography variant="caption" color="error.main">
-                                                            Error: {doc.error_message}
-                                                        </Typography>
+                                                        <Typography variant="caption" color="error.main">Error: {doc.error_message}</Typography>
                                                     )}
                                                 </Box>
                                             }
                                         />
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Chip
-                                                icon={statusInfo.icon}
-                                                label={statusInfo.label}
-                                                color={statusInfo.color as any}
-                                                variant="outlined"
-                                                size="small"
-                                            />
-                                            <IconButton
-                                                size="small"
-                                                onClick={(e) => handleMenuOpen(e, doc)}
-                                            >
-                                                <MoreVertIcon />
-                                            </IconButton>
-                                        </Box>
                                     </ListItem>
                                 );
                             })}
