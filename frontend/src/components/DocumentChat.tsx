@@ -17,6 +17,7 @@ import {
   MenuItem,
   Tooltip
 } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
@@ -54,6 +55,8 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   const [selectedModel, setSelectedModel] = useState('');
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { sendMessage, lastMessage, readyState } = useWebSocket(
@@ -76,13 +79,17 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
         case 'message':
           setMessages(prev => [...prev, data.message]);
           setIsTyping(false);
+          setStatusMessage(null);
           break;
         case 'typing':
           setIsTyping(true);
+          setStatusMessage('Generating answer…');
           break;
         case 'error':
           console.error('Chat error:', data.message);
           setIsTyping(false);
+          setStatusMessage(null);
+          setErrorMessage(typeof data.message === 'string' ? data.message : 'Chat error');
           break;
       }
     }
@@ -149,6 +156,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
+    setStatusMessage(`Generating with ${selectedModel || 'model'}…`);
 
     try {
       if (readyState === WebSocket.OPEN) {
@@ -183,12 +191,25 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           }
 
           setMessages(prev => [...prev, data.response]);
+        } else {
+          const text = await response.text();
+          setErrorMessage(text || 'Failed to get a response');
+          // Also reflect failure in the transcript so the user sees feedback
+          setMessages(prev => [...prev, {
+            id: Date.now().toString() + '-err',
+            role: 'assistant',
+            content: 'Sorry, I was unable to generate a response. Please try again.',
+            created_at: new Date().toISOString()
+          }]);
         }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
+      setErrorMessage('Network error while sending message');
     } finally {
       setIsLoading(false);
+      setIsTyping(false);
+      setStatusMessage(null);
     }
   };
 
@@ -252,6 +273,22 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
             color="primary"
           />
         )}
+        {/* Connection status + progress */}
+        <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Chip
+            size="small"
+            color={readyState === WebSocket.OPEN ? 'success' : 'warning'}
+            label={readyState === WebSocket.OPEN ? 'Live: Realtime' : 'Live: HTTP fallback'}
+          />
+          {isLoading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={14} />
+              <Typography variant="caption" color="text.secondary">
+                {statusMessage || 'Working…'}
+              </Typography>
+            </Box>
+          )}
+        </Box>
       </Box>
 
       {/* Messages */}
@@ -303,6 +340,22 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               </Box>
             </ListItem>
           )}
+
+          {isLoading && !isTyping && (
+            <ListItem>
+              <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                <BotIcon />
+              </Avatar>
+              <Paper elevation={1} sx={{ p: 2, maxWidth: '70%', bgcolor: 'grey.100' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {statusMessage || 'Generating answer…'}
+                </Typography>
+                <Skeleton variant="text" width={250} />
+                <Skeleton variant="text" width={320} />
+                <Skeleton variant="text" width={180} />
+              </Paper>
+            </ListItem>
+          )}
         </List>
         <div ref={messagesEndRef} />
       </Box>
@@ -329,6 +382,15 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           <SendIcon />
         </IconButton>
       </Box>
+
+      {/* Error feedback */}
+      {errorMessage && (
+        <Box sx={{ px: 2, pb: 2 }}>
+          <Paper variant="outlined" sx={{ p: 1.5, borderColor: 'error.light', bgcolor: 'error.lighter', color: 'error.dark' as any }}>
+            <Typography variant="body2">{errorMessage}</Typography>
+          </Paper>
+        </Box>
+      )}
     </Paper>
   );
 };

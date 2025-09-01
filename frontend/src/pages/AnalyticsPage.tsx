@@ -1,6 +1,21 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Box, Paper, Typography, Grid, Chip, LinearProgress } from '@mui/material'
 import { useGetAnalyticsSummaryQuery, useGetAnalyticsStorageQuery, useGetAnalyticsTimeseriesQuery } from '../store/api'
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Legend,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts'
 
 const bytesToSize = (bytes: number): string => {
     if (!bytes || bytes <= 0) return '0 B'
@@ -11,9 +26,34 @@ const bytesToSize = (bytes: number): string => {
 }
 
 const AnalyticsPage: React.FC = () => {
-    const { data: summary, isLoading: loadingSummary } = useGetAnalyticsSummaryQuery(undefined as any)
-    const { data: storage, isLoading: loadingStorage } = useGetAnalyticsStorageQuery(undefined as any)
-    const { data: timeseries, isLoading: loadingSeries } = useGetAnalyticsTimeseriesQuery({ days: 30 } as any)
+    const { data: summary, isLoading: loadingSummary } = useGetAnalyticsSummaryQuery(undefined as any, { pollingInterval: 5000 })
+    const { data: storage, isLoading: loadingStorage } = useGetAnalyticsStorageQuery(undefined as any, { pollingInterval: 15000 })
+    const { data: timeseries, isLoading: loadingSeries } = useGetAnalyticsTimeseriesQuery({ days: 30 } as any, { pollingInterval: 10000 })
+
+    const documentsByTypeChart = useMemo(() => {
+        return (summary?.documents_by_type || []).map((r: any) => ({
+            type: (r.file_type || 'unknown').toUpperCase(),
+            count: r.count,
+        }))
+    }, [summary])
+
+    const storageByTypeChart = useMemo(() => {
+        return (storage?.by_type || []).map((r: any) => ({
+            type: (r.file_type || 'unknown').toUpperCase?.() || (r.file_type || 'unknown'),
+            bytes: r.bytes,
+        }))
+    }, [storage])
+
+    const activitySeries = useMemo(() => {
+        const uploads = (timeseries?.uploads || []).map((d: any) => ({ day: d.day, uploads: d.count }))
+        const views = (timeseries?.views || []).map((d: any) => ({ day: d.day, views: d.count }))
+        const searches = (timeseries?.searches || []).map((d: any) => ({ day: d.day, searches: d.count }))
+        const map: Record<string, any> = {}
+        ;[...uploads, ...views, ...searches].forEach(p => {
+            map[p.day] = { day: p.day, ...(map[p.day] || {}), ...p }
+        })
+        return Object.values(map)
+    }, [timeseries])
 
     return (
         <Box>
@@ -60,31 +100,40 @@ const AnalyticsPage: React.FC = () => {
                         {loadingSummary ? (
                             <LinearProgress />
                         ) : (
-                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 1 }}>
-                                {(summary?.documents_by_type || []).map((row: any) => (
-                                    <React.Fragment key={row.file_type}>
-                                        <Typography>{row.file_type?.toUpperCase()}</Typography>
-                                        <Typography color="text.secondary">{row.count}</Typography>
-                                        <Typography color="text.secondary">{bytesToSize(row.total_size)}</Typography>
-                                    </React.Fragment>
-                                ))}
+                            <Box sx={{ height: 260 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={documentsByTypeChart}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="type" />
+                                        <YAxis />
+                                        <RechartsTooltip />
+                                        <Legend />
+                                        <Bar dataKey="count" fill="#4F46E5" radius={[6,6,0,0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </Box>
                         )}
                     </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 3, borderRadius: 3 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Top Uploaders</Typography>
-                        {loadingSummary ? (
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Activity (30d)</Typography>
+                        {loadingSeries ? (
                             <LinearProgress />
                         ) : (
-                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 1 }}>
-                                {(summary?.top_uploaders || []).map((row: any) => (
-                                    <React.Fragment key={row.user_email}>
-                                        <Typography>{row.user_email}</Typography>
-                                        <Typography color="text.secondary">{row.uploads}</Typography>
-                                    </React.Fragment>
-                                ))}
+                            <Box sx={{ height: 260 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={activitySeries}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="day" hide />
+                                        <YAxis />
+                                        <RechartsTooltip />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="uploads" stroke="#22C55E" dot={false} strokeWidth={2} />
+                                        <Line type="monotone" dataKey="views" stroke="#06B6D4" dot={false} strokeWidth={2} />
+                                        <Line type="monotone" dataKey="searches" stroke="#F59E0B" dot={false} strokeWidth={2} />
+                                    </LineChart>
+                                </ResponsiveContainer>
                             </Box>
                         )}
                     </Paper>
