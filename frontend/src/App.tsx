@@ -18,8 +18,8 @@ import AuditTrailPage from './pages/AuditTrailPage'
 import RoleManagementPage from './pages/RoleManagementPage'
 import SettingsPage from './pages/SettingsPage'
 import DashboardPage from './pages/DashboardPage'
-import AnalyticsPage from './pages/AnalyticsPage'
 import ProcessingQueuePage from './pages/ProcessingQueuePage'
+import DocumentsPage from './pages/DocumentsPage'
 
 // Components
 import PrivateRoute from './components/PrivateRoute'
@@ -55,8 +55,8 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/upload" element={<UploadPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/document/:id" element={<DocumentViewer />} />
             <Route path="/audit" element={<AuditTrailPage />} />
             <Route path="/users" element={<RoleManagementPage />} />
