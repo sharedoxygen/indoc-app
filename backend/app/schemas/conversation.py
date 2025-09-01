@@ -29,7 +29,12 @@ class MessageResponse(BaseModel):
     conversation_id: UUID
     role: RoleStr
     content: str
-    metadata: Dict[str, Any] = Field(default_factory=dict, alias="message_metadata")
+    # Map ORM column 'message_metadata' <-> API field 'metadata'
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        validation_alias='message_metadata',
+        serialization_alias='metadata'
+    )
     created_at: datetime
 
 
@@ -37,7 +42,12 @@ class ConversationBase(BaseModel):
     """Base conversation schema"""
     title: Optional[str] = None
     document_id: Optional[UUID] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    # Map ORM column 'conversation_metadata' <-> API field 'metadata'
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        validation_alias='conversation_metadata',
+        serialization_alias='metadata'
+    )
 
 
 class ConversationCreate(ConversationBase):
@@ -56,7 +66,7 @@ class ConversationResponse(ConversationBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     tenant_id: UUID
-    user_id: UUID
+    user_id: int
     created_at: datetime
     updated_at: datetime
     messages: List[MessageResponse] = Field(default_factory=list)
