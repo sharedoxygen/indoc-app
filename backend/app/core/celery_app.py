@@ -9,7 +9,12 @@ celery_app = Celery(
     "indoc",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks"]
+    include=[
+        "app.tasks.document",
+        "app.tasks.search", 
+        "app.tasks.llm",
+        "app.tasks.maintenance"
+    ]
 )
 
 # Configure Celery

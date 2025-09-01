@@ -4,6 +4,8 @@ Search service for document retrieval
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from sqlalchemy import select
+from app.models.document import Document
 
 logger = logging.getLogger(__name__)
 

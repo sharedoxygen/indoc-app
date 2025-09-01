@@ -1,9 +1,11 @@
 """
 User model with RBAC support
 """
-from sqlalchemy import Column, String, Boolean, Enum
+from sqlalchemy import Column, String, Boolean, Enum, Integer
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
+import uuid
 
 from app.models.base import BaseModel
 
@@ -26,6 +28,7 @@ class User(BaseModel):
     role = Column(Enum(UserRole), default=UserRole.VIEWER, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     
     # Relationships
     documents = relationship("Document", back_populates="uploaded_by_user", cascade="all, delete-orphan")

@@ -76,7 +76,8 @@ async def list_documents(
                 func.lower(Document.filename).like(search_term) |
                 func.lower(Document.title).like(search_term) |
                 func.lower(Document.description).like(search_term) |
-                func.lower(Document.full_text).like(search_term)
+                func.lower(Document.full_text).like(search_term) |
+                func.lower(Document.tags.cast(String)).like(search_term)  # Include tags in search
             )
     
     # Add file type filter

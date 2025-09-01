@@ -357,22 +357,26 @@ const UploadPage: React.FC = () => {
               <Typography variant="body1" gutterBottom>
                 <strong>Document ID:</strong> {selectedResult.uuid}
               </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Status:</strong>{' '}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="body1" component="span">
+                  <strong>Status:</strong>
+                </Typography>
                 <Chip
                   label={selectedResult.status}
                   color={selectedResult.status === 'pending' ? 'warning' : 'success'}
                   size="small"
                 />
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Virus Scan:</strong>{' '}
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="body1" component="span">
+                  <strong>Virus Scan:</strong>
+                </Typography>
                 <Chip
                   label={selectedResult.virus_scan_status}
                   color={selectedResult.virus_scan_status === 'clean' ? 'success' : 'error'}
                   size="small"
                 />
-              </Typography>
+              </Box>
             </Box>
           )}
         </DialogContent>

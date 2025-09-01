@@ -42,7 +42,7 @@ export const api = createApi({
 
     // Document endpoints
     getDocuments: builder.query({
-      query: ({ skip = 0, limit = 10, search, file_type, sort_by, sort_order }) => {
+      query: ({ skip = 0, limit = 10, search, file_type, sort_by, sort_order } = {}) => {
         const params = new URLSearchParams({
           skip: skip.toString(),
           limit: limit.toString(),
@@ -61,7 +61,7 @@ export const api = createApi({
     }),
     uploadDocument: builder.mutation({
       query: (formData) => ({
-        url: '/files',
+        url: '/files/upload',
         method: 'POST',
         body: formData,
       }),
@@ -105,6 +105,8 @@ export const api = createApi({
     findSimilarDocuments: builder.query({
       query: ({ id, limit = 5 }) => `/search/documents/${id}/similar?limit=${limit}`,
     }),
+
+
 
     // User management endpoints
     getUsers: builder.query({

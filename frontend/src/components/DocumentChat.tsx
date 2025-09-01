@@ -10,16 +10,23 @@ import {
   Avatar,
   CircularProgress,
   Divider,
-  Chip
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Tooltip
 } from '@mui/material';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
   Person as PersonIcon,
-  SmartToy as BotIcon
+  SmartToy as BotIcon,
+  Psychology as ModelIcon
 } from '@mui/icons-material';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
+import { ollamaService, OllamaModel } from '../services/ollamaService';
 
 interface Message {
   id: string;
@@ -44,6 +51,9 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(initialConversationId);
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('');
+  const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { sendMessage, lastMessage, readyState } = useWebSocket(
@@ -77,6 +87,28 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       }
     }
   }, [lastMessage]);
+
+  // Load available models on component mount
+  useEffect(() => {
+    const loadModels = async () => {
+      setModelsLoading(true);
+      try {
+        const models = await ollamaService.getAvailableModels();
+        setAvailableModels(models);
+
+        // Set default model to first available model
+        if (models.length > 0 && !selectedModel) {
+          setSelectedModel(models[0].name);
+        }
+      } catch (error) {
+        console.error('Failed to load Ollama models:', error);
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+
+    loadModels();
+  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -137,6 +169,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
             message: inputMessage,
             conversation_id: conversationId,
             document_ids: documentIds,
+            model: selectedModel,
             stream: false
           })
         });
@@ -170,18 +203,53 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
     <Paper elevation={3} sx={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6">
-          {documentIds && documentIds.length > 0
-            ? `Chat with ${documentIds.length} document(s)`
-            : 'AI Assistant'}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="h6">
+            {documentIds && documentIds.length > 0
+              ? `Chat with ${documentIds.length} document(s)`
+              : 'AI Assistant'}
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 250 }}>
+            <InputLabel>AI Model</InputLabel>
+            <Select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              label="AI Model"
+              disabled={modelsLoading || availableModels.length === 0}
+              startAdornment={<ModelIcon fontSize="small" />}
+            >
+              {modelsLoading ? (
+                <MenuItem disabled>
+                  <CircularProgress size={16} sx={{ mr: 1 }} />
+                  Loading models...
+                </MenuItem>
+              ) : availableModels.length === 0 ? (
+                <MenuItem disabled>
+                  No models available
+                </MenuItem>
+              ) : (
+                availableModels.map((model) => (
+                  <MenuItem key={model.name} value={model.name}>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {ollamaService.formatModelName(model)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {ollamaService.getModelDescription(model)}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+          </FormControl>
+        </Box>
         {documentIds && documentIds.length > 0 && (
           <Chip
             icon={<AttachFileIcon />}
             label={`${documentIds.length} document(s) attached`}
             size="small"
             color="primary"
-            sx={{ mt: 1 }}
           />
         )}
       </Box>
