@@ -36,7 +36,7 @@ cp .env.example .env
 3. Install Ollama (for LLM features):
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
-ollama run llama2  # or your preferred model
+ollama run gemma:2b  # or your preferred model
 ```
 
 4. Start the application:
@@ -135,7 +135,7 @@ Key configuration options in `.env`:
 - `POSTGRES_PASSWORD`: Database password
 - `JWT_SECRET_KEY`: JWT token signing key
 - `FIELD_ENCRYPTION_KEY`: Key for field-level encryption
-- `OLLAMA_MODEL`: LLM model to use (default: llama2)
+- `OLLAMA_MODEL`: LLM model to use (optional; leave empty to auto-pick)
 - `MAX_UPLOAD_SIZE`: Maximum file upload size in bytes
 
 ## Security

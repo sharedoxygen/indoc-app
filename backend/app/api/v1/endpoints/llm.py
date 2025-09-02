@@ -94,8 +94,16 @@ async def get_chat_settings(
                 "description": f"Ollama model: {model}"
             })
         
+        # Choose default model dynamically if env unset
+        resolved_default = settings.OLLAMA_MODEL
+        if not resolved_default:
+            if models:
+                resolved_default = models[0]
+            else:
+                resolved_default = ""
+
         return ChatSettings(
-            default_model=settings.OLLAMA_MODEL,
+            default_model=resolved_default,
             temperature=0.7,
             max_tokens=1000,
             available_models=available_models

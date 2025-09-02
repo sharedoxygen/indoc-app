@@ -221,7 +221,7 @@ make test     # Run all tests
 
 ### LLM Integration
 - Ollama runs on the host machine (not containerized) for better GPU access
-- Models available: llama2, gpt-oss:120b, deepseek-r1:70b, kimi-k2:72b, qwen2.5vl:72b
+- Models commonly used: gpt-oss:120b, deepseek-r1:70b, kimi-k2:72b, qwen2.5vl:72b, gemma:27b
 - Use `qwen2.5vl:72b` for OCR and document understanding tasks
 - Implement token counting and rate limiting for LLM calls
 - Cache LLM responses when appropriate (with TTL)
