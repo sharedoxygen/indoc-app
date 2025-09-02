@@ -151,15 +151,16 @@ const DashboardPage: React.FC = () => {
           <Paper sx={{ p: 3, borderRadius: 3, height: 380 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Storage by File Type</Typography>
             <ResponsiveContainer width="100%" height="85%">
-              <PieChart>
+              <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <Pie
                   dataKey="value"
                   data={storageByType}
                   cx="50%"
                   cy="50%"
-                  outerRadius={120}
+                  outerRadius={90}
                   label={({ name, value }: any) => `${name}: ${formatBytes(value)}`}
-                  labelLine={false}
+                  labelLine={true}
+                  fontSize={12}
                 >
                   {storageByType.map((_: any, i: number) => (
                     <Cell key={i} fill={["#6366F1", "#22C55E", "#06B6D4", "#F59E0B", "#EF4444"][i % 5]} />
