@@ -55,8 +55,8 @@ async def list_documents(
             from app.services.search.elasticsearch_service import ElasticsearchService
             es_service = ElasticsearchService()
             
-            # Search in Elasticsearch
-            search_results = await es_service.search(search, 1000, filters)  
+            # Search in Elasticsearch (no extra filters for now)
+            search_results = await es_service.search(search, 1000)  
             search_doc_ids = [result["id"] for result in search_results]
             
             if search_doc_ids:
@@ -121,6 +121,7 @@ async def list_documents(
             "file_type": doc.file_type,
             "file_size": doc.file_size,
             "status": doc.status,
+            "error_message": doc.error_message,
             "virus_scan_status": doc.virus_scan_status,
             "title": doc.title,
             "description": doc.description,
@@ -202,7 +203,7 @@ async def upload_file(
         
         # Trigger automatic document processing
         from app.tasks.document import process_document
-        process_document.delay(str(document.uuid))  # Use UUID, not ID
+        async_result = process_document.delay(str(document.uuid))  # Use UUID, not ID
         
         logger.info(f"🚀 Triggered processing for document: {document.filename}")
         
@@ -212,7 +213,9 @@ async def upload_file(
             "filename": document.filename,
             "status": document.status,
             "virus_scan_status": document.virus_scan_status,
-            "message": "File uploaded successfully and processing started"
+            "message": "File uploaded successfully and processing started",
+            "task_id": async_result.id,
+            "queue": "document_processing"
         }
         
     except Exception as e:
@@ -365,3 +368,60 @@ async def delete_document(
     await db.commit()
     
     return {"message": "Document deleted successfully"}
+
+
+@router.post("/retry/{document_id}")
+async def retry_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Retry processing for a specific document by re-queuing the task.
+
+    Authorization: Admin/Reviewer can retry any document; other users can only retry their own.
+    """
+    # Fetch document by UUID
+    result = await db.execute(select(Document).where(Document.uuid == document_id))
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    # Access control
+    user_role_value = getattr(current_user.role, "value", current_user.role)
+    if user_role_value not in ["Admin", "Reviewer"] and document.uploaded_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    # Validate storage file exists to provide immediate feedback if unrecoverable
+    storage_path = Path(document.storage_path)
+    if not storage_path.exists():
+        document.status = "failed"
+        document.error_message = f"File not found on disk: {document.storage_path}"
+        await db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=document.error_message)
+
+    # Reset minimal fields and enqueue processing
+    try:
+        document.status = "uploaded"
+        document.error_message = None
+        document.updated_at = func.now()
+        await db.commit()
+
+        from app.tasks.document import process_document
+        async_result = process_document.delay(str(document.uuid))
+
+        audit_log = AuditLog(
+            user_id=current_user.id,
+            user_email=current_user.email,
+            user_role=user_role_value,
+            action="retry",
+            resource_type="document",
+            resource_id=str(document.uuid)
+        )
+        db.add(audit_log)
+        await db.commit()
+
+        return {"ok": True, "message": "Document re-queued for processing", "task_id": async_result.id, "queue": "document_processing"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

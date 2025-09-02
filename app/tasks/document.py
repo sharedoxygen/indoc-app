@@ -100,10 +100,11 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
             }
         else:
             document.status = "failed"
+            document.error_message = extracted.get("error") if extracted else "Unknown extraction error"
             self.db.commit()
             return {
                 "status": "error",
-                "message": "Failed to extract text"
+                "message": document.error_message
             }
             
     except Exception as e:

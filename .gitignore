@@ -113,3 +113,8 @@ monitoring/prometheus_data/
 monitoring/grafana_data/
 prometheus_data/
 grafana_data/
+
+# Local configuration (not committed)
+config/local.yaml
+config/*.local.yaml
+config/secrets.*

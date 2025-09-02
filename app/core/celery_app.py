@@ -46,5 +46,10 @@ celery_app.conf.update(
             "task": "app.tasks.document.process_pending_documents",
             "schedule": 60.0,  # Every minute
         },
+        "fail-stuck-documents": {
+            "task": "app.tasks.maintenance.fail_stuck_documents",
+            "schedule": 120.0,  # Every 2 minutes
+            "args": (5,),  # timeout minutes
+        },
     },
 )

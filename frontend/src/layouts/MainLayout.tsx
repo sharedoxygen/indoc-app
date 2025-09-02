@@ -227,6 +227,9 @@ const MainLayout: React.FC = () => {
           onClose={handleDrawerToggle}
           ModalProps={{
             keepMounted: true,
+            disableAutoFocus: true,
+            disableEnforceFocus: true,
+            disableRestoreFocus: true,
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },

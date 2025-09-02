@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings
 from pydantic import Field, field_validator, ConfigDict
 from pathlib import Path
 import os
+import yaml
 
 
 class Settings(BaseSettings):
@@ -58,7 +59,57 @@ class Settings(BaseSettings):
     ENABLE_FIELD_ENCRYPTION: bool = True
     
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        # Merge YAML defaults and local overrides first
+        yaml_config = {}
+        try:
+            with open(Path(__file__).resolve().parent.parent.parent / 'config' / 'default.yaml', 'r') as f:
+                yaml_config = yaml.safe_load(f) or {}
+            local_path = Path(__file__).resolve().parent.parent.parent / 'config' / 'local.yaml'
+            if local_path.exists():
+                local_cfg = yaml.safe_load(local_path.read_text()) or {}
+                # shallow merge local over default
+                def merge(a, b):
+                    for k, v in (b or {}).items():
+                        if isinstance(v, dict) and isinstance(a.get(k), dict):
+                            merge(a[k], v)
+                        else:
+                            a[k] = v
+                    return a
+                yaml_config = merge(yaml_config, local_cfg)
+        except Exception:
+            yaml_config = yaml_config or {}
+
+        # Map YAML into our fields if not provided via kwargs/env
+        mapped = {}
+        def g(path, default=None):
+            cur = yaml_config
+            for p in path:
+                if not isinstance(cur, dict) or p not in cur: return default
+                cur = cur[p]
+            return cur
+        mapped.update({
+            'APP_NAME': g(['app','name'], self.APP_NAME if hasattr(self, 'APP_NAME') else 'inDoc'),
+            'APP_VERSION': g(['app','version'], self.APP_VERSION if hasattr(self, 'APP_VERSION') else '1.0.0'),
+            'API_PREFIX': g(['api','prefix'], self.API_PREFIX if hasattr(self, 'API_PREFIX') else '/api/v1'),
+            'API_HOST': g(['server','host'], self.API_HOST if hasattr(self, 'API_HOST') else '0.0.0.0'),
+            'API_PORT': g(['server','port'], self.API_PORT if hasattr(self, 'API_PORT') else 8000),
+            'TEMP_REPO_PATH': Path(g(['storage','temp_path'], './tmp/indoc_temp')),
+            'STORAGE_PATH': Path(g(['storage','storage_path'], './data/storage')),
+            'CORS_ORIGINS': g(['cors','origins'], ["http://localhost:5173", "http://localhost:3000"]),
+            'ELASTICSEARCH_URL': g(['search','elasticsearch_url'], 'http://localhost:9200'),
+            'ELASTICSEARCH_INDEX': g(['search','elasticsearch_index'], 'indoc_documents'),
+            'WEAVIATE_URL': g(['search','weaviate_url'], 'http://localhost:8060'),
+            'WEAVIATE_CLASS': g(['search','weaviate_class'], 'Document'),
+            'REDIS_URL': g(['redis','url'], 'redis://localhost:6379'),
+            'CELERY_BROKER_URL': g(['celery','broker_url'], 'redis://localhost:6379/0'),
+            'CELERY_RESULT_BACKEND': g(['celery','result_backend'], 'redis://localhost:6379/0'),
+            'OLLAMA_BASE_URL': g(['ollama','base_url'], 'http://localhost:11434'),
+            'OLLAMA_MODEL': g(['ollama','model'], 'llama2'),
+        })
+
+        # env/kwargs should override YAML
+        mapped.update(kwargs)
+        super().__init__(**mapped)
         # Initialize production keys if not provided
         self._initialize_production_keys()
     

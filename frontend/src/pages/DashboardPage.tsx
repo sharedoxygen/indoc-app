@@ -57,7 +57,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Box sx={{ flexGrow: 1, p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, mb: 4 }}>Executive Dashboard</Typography>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, mb: 4 }}>Dashboard</Typography>
 
       {/* Key Performance Indicators */}
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>Key Metrics</Typography>

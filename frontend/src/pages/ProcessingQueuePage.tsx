@@ -27,7 +27,10 @@ import {
     InputAdornment,
     FormControl,
     InputLabel,
-    Select
+    Select,
+    LinearProgress,
+    Snackbar,
+    Alert as MuiAlert,
 } from '@mui/material';
 import {
     Sync as SyncIcon,
@@ -104,6 +107,9 @@ const ProcessingQueuePage: React.FC = () => {
 
     const [deleteDocument] = useDeleteDocumentMutation();
     const [retryDocument] = useRetryDocumentMutation();
+    const [lastTaskId, setLastTaskId] = useState<string | null>(null);
+    const [isRetrying, setIsRetrying] = useState(false);
+    const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({ open: false, message: '', severity: 'info' });
 
     const allDocuments = documentsData?.documents || [];
     const processingDocuments = allDocuments.filter((doc: any) => doc.status !== 'indexed');
@@ -126,10 +132,39 @@ const ProcessingQueuePage: React.FC = () => {
 
     const handleRetryDocument = async (docId: string) => {
         try {
-            await retryDocument(docId).unwrap();
+            setIsRetrying(true);
+            const res = await retryDocument(docId).unwrap() as any;
+            if (res?.task_id) setLastTaskId(res.task_id);
             refetch();
-        } catch (error) {
+            setTimeout(() => { setIsRetrying(false); }, 800);
+            setToast({ open: true, message: `Re-queued (task ${res?.task_id || 'n/a'}) – monitoring…`, severity: 'info' })
+                // Background poll to surface failure/success reason quickly
+                ; (async () => {
+                    const token = localStorage.getItem('token')
+                    for (let i = 0; i < 12; i += 1) { // ~12s
+                        await new Promise((r) => setTimeout(r, 1000))
+                        try {
+                            const res = await fetch(`/api/v1/files/${docId}`, {
+                                headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+                            })
+                            if (!res.ok) continue
+                            const doc = await res.json()
+                            if (doc.status === 'failed') {
+                                setToast({ open: true, message: doc.error_message || 'Processing failed', severity: 'error' })
+                                break
+                            }
+                            if (doc.status === 'indexed') {
+                                setToast({ open: true, message: 'Processing completed', severity: 'success' })
+                                break
+                            }
+                        } catch { }
+                    }
+                })()
+        } catch (error: any) {
             console.error('Failed to retry document:', error);
+            setIsRetrying(false);
+            const msg = error?.data?.detail || 'Retry failed';
+            setToast({ open: true, message: msg, severity: 'error' })
         }
     };
 
@@ -176,11 +211,15 @@ const ProcessingQueuePage: React.FC = () => {
         const ids = Object.keys(selected).filter(id => selected[id])
         if (ids.length === 0) return;
         if (!window.confirm(`Retry processing for ${ids.length} selected document(s)?`)) return;
+        setIsRetrying(true);
+        let failures = 0;
         for (const id of ids) {
-            try { await retryDocument(id).unwrap() } catch (e) { console.error('Bulk retry failed for', id, e) }
+            try { await retryDocument(id).unwrap() } catch (e) { failures += 1 }
         }
         setSelected({})
         refetch()
+        setTimeout(() => { setIsRetrying(false); }, 1000);
+        setToast({ open: true, message: failures ? `Re-queued with ${failures} failure(s)` : 'Re-queued all selected', severity: failures ? 'error' : 'success' })
     }
 
     return (
@@ -205,7 +244,7 @@ const ProcessingQueuePage: React.FC = () => {
                 </Box>
             </Box>
 
-            <Paper sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Paper sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', position: 'relative', overflow: 'hidden' }}>
                 <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
                     <TextField
                         fullWidth
@@ -305,6 +344,11 @@ const ProcessingQueuePage: React.FC = () => {
                                                 ))}
                                             </Box>
                                             <Chip icon={statusInfo.icon} label={statusInfo.label} color={statusInfo.color as any} variant="outlined" size="small" />
+                                            {doc.error_message && (
+                                                <Typography variant="caption" color="error.main" sx={{ maxWidth: 320, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {doc.error_message}
+                                                </Typography>
+                                            )}
                                             <IconButton
                                                 size="small"
                                                 onClick={(e) => handleMenuOpen(e, doc)}
@@ -329,7 +373,61 @@ const ProcessingQueuePage: React.FC = () => {
                         />
                     </Box>
                 )}
+                {isRetrying && (
+                    <Box sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        p: 3,
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 20%, rgba(255,255,255,1) 100%)',
+                        borderBottomLeftRadius: 12,
+                        borderBottomRightRadius: 12,
+                        pointerEvents: 'none',
+                        zIndex: 1,
+                    }} aria-hidden>
+                        <Box sx={{ mb: 1 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: 0.25 }}>
+                                    Re-queuing selected document(s)…
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    Preparing tasks
+                                </Typography>
+                            </Box>
+                            <LinearProgress
+                                variant="indeterminate"
+                                sx={{
+                                    height: 6,
+                                    borderRadius: 3,
+                                    bgcolor: 'grey.200',
+                                    '& .MuiLinearProgress-bar': {
+                                        borderRadius: 3,
+                                        background: 'linear-gradient(90deg, #22C55E 0%, #06B6D4 25%, #8B5CF6 50%, #F59E0B 75%, #EF4444 100%)',
+                                        backgroundSize: '200% 100%',
+                                        animation: 'gradient 3s ease infinite, MuiLinearProgress-indeterminate1 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite',
+                                        '@keyframes gradient': {
+                                            '0%': { backgroundPosition: '0% 50%' },
+                                            '50%': { backgroundPosition: '100% 50%' },
+                                            '100%': { backgroundPosition: '0% 50%' }
+                                        }
+                                    }
+                                }}
+                            />
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                            <Chip icon={<RetryIcon />} label="Requeue" size="small" color="primary" variant="outlined" />
+                            <Chip icon={<SyncIcon />} label="Queueing" size="small" color="info" variant="outlined" />
+                        </Box>
+                    </Box>
+                )}
             </Paper>
+
+            <Snackbar open={toast.open} autoHideDuration={toast.severity === 'error' ? null : 6000} onClose={() => setToast(prev => ({ ...prev, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <MuiAlert onClose={() => setToast(prev => ({ ...prev, open: false }))} severity={toast.severity} elevation={6} variant="filled">
+                    {toast.message}
+                </MuiAlert>
+            </Snackbar>
 
             {/* Document Actions Menu */}
             <Menu

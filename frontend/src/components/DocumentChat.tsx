@@ -26,6 +26,8 @@ import {
   Psychology as ModelIcon,
   Download as DownloadIcon,
   PictureAsPdf as PdfIcon,
+  CheckCircle as CheckCircleIcon,
+  Speed as SpeedIcon,
 } from '@mui/icons-material';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
@@ -79,6 +81,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       case 'message':
         setMessages(prev => [...prev, data.message]);
         setIsTyping(false);
+        setIsLoading(false);
         break;
       case 'typing':
         setIsTyping(true);
@@ -86,6 +89,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       case 'error':
         console.error('Chat error:', data.message);
         setIsTyping(false);
+        setIsLoading(false);
         break;
     }
   }, [lastMessage]);
@@ -138,7 +142,14 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
     setErrorMessage(null);
     try {
       if (readyState === WebSocket.OPEN && conversationId) {
-        sendMessage(JSON.stringify({ type: 'message', content: inputMessage }));
+        // Include current document context and model for WS messages as well
+        sendMessage(JSON.stringify({
+          type: 'message',
+          content: inputMessage,
+          document_ids: (documentIds && documentIds.length > 0) ? documentIds : undefined,
+          model: selectedModel || undefined,
+        }));
+        // Keep isLoading true until we receive WS events ('typing'/'message'/'error')
       } else {
         const response = await fetch('/api/v1/chat/chat', {
           method: 'POST',
@@ -161,15 +172,18 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
             onNewConversation?.(data.conversation_id);
           }
           setMessages(prev => [...prev, data.response]);
+          setIsLoading(false);
         } else {
           const text = await response.text();
           setErrorMessage(text || 'The assistant failed to respond.');
+          setIsLoading(false);
         }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
       setErrorMessage('Network error while sending message.');
-    } finally { setIsLoading(false); }
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -208,14 +222,14 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   };
 
   return (
-    <Paper elevation={3} sx={{ height: { xs: '58vh', md: '60vh' }, display: 'flex', flexDirection: 'column', maxWidth: 1100, mx: 'auto', borderRadius: 3 }}>
+    <Paper elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 3, position: 'relative' }}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="h6">
             {documentIds && documentIds.length > 0 ? `Chat with ${documentIds.length} document(s)` : 'AI Assistant'}
           </Typography>
-          <FormControl size="small" sx={{ minWidth: 250 }}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>AI Model</InputLabel>
             <Select
               value={selectedModel}
@@ -235,10 +249,10 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
                 availableModels.map((model) => (
                   <MenuItem key={model.name} value={model.name}>
                     <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
                         {ollamaService.formatModelName(model)}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                         {ollamaService.getModelDescription(model)}
                       </Typography>
                     </Box>
@@ -276,15 +290,15 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
         </Box>
       </Box>
 
-      {/* Messages */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
-        <List>
+      {/* Messages - reduced effective height to make room for progress meter */}
+      <Box sx={{ flexGrow: 1, overflow: 'auto', p: 1.5, minHeight: 0, pb: 12 }}>
+        <List sx={{ py: 0 }}>
           {messages.map((message) => (
-            <ListItem key={message.id} sx={{ flexDirection: message.role === 'user' ? 'row-reverse' : 'row', gap: 1, alignItems: 'flex-start' }}>
+            <ListItem key={message.id} sx={{ flexDirection: message.role === 'user' ? 'row-reverse' : 'row', gap: 1, alignItems: 'flex-start', py: 0.5 }}>
               <Avatar sx={{ bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main' }}>
                 {message.role === 'user' ? <PersonIcon /> : <BotIcon />}
               </Avatar>
-              <Paper elevation={1} sx={{ p: 2, maxWidth: '78%', bgcolor: message.role === 'user' ? 'primary.light' : 'background.paper', color: message.role === 'user' ? 'primary.contrastText' : 'text.primary', border: message.role === 'assistant' ? 1 : 0, borderColor: 'divider', borderRadius: 2 }}>
+              <Paper elevation={1} sx={{ p: 1.5, maxWidth: '78%', bgcolor: message.role === 'user' ? 'primary.light' : 'background.paper', color: message.role === 'user' ? 'primary.contrastText' : 'text.primary', border: message.role === 'assistant' ? 1 : 0, borderColor: 'divider', borderRadius: 2 }}>
                 <Box sx={{ '& table': { width: '100%', borderCollapse: 'collapse', my: 1 }, '& th, & td': { border: '1px solid', borderColor: 'divider', p: 1, verticalAlign: 'top' }, '& pre': { p: 1.5, overflowX: 'auto', bgcolor: 'background.default', borderRadius: 1, border: 1, borderColor: 'divider' }, '& code': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' } }} ref={message.role === 'assistant' ? lastAssistantRef : undefined}>
                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw as any, rehypeHighlight as any]}>
                     {message.content}
@@ -313,8 +327,23 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       <Divider />
 
       {/* Input */}
-      <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
-        <TextField fullWidth multiline maxRows={4} placeholder="Type your message..." value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} onKeyPress={handleKeyPress} disabled={isLoading} />
+      <Box sx={{ p: 1.5, display: 'flex', gap: 1, alignItems: 'center' }}>
+        <TextField
+          fullWidth
+          multiline
+          maxRows={3}
+          size="small"
+          placeholder="Type your message..."
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+          disabled={isLoading}
+        />
         <IconButton color="primary" onClick={handleSendMessage} disabled={isLoading || !inputMessage.trim()}>
           <SendIcon />
         </IconButton>
@@ -326,6 +355,76 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           <Paper variant="outlined" sx={{ p: 1.5, borderColor: 'error.light', bgcolor: 'error.lighter', color: 'error.dark' as any }}>
             <Typography variant="body2">{errorMessage}</Typography>
           </Paper>
+        </Box>
+      )}
+
+      {/* Colorful Progress Meter - shows on send and during generation */}
+      {(isLoading || isTyping) && (
+        <Box sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          p: 3,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 20%, rgba(255,255,255,1) 100%)',
+          borderBottomLeftRadius: 3,
+          borderBottomRightRadius: 3,
+          pointerEvents: 'none',
+          zIndex: 1,
+          minHeight: 110,
+        }} aria-hidden>
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: 0.25 }}>
+                {(isLoading && !isTyping) ? 'Sending to model…' : isTyping ? 'Generating response…' : 'Processing…'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {isTyping ? 'Streaming tokens' : 'Preparing context'}
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="indeterminate"
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                bgcolor: 'grey.200',
+                '& .MuiLinearProgress-bar': {
+                  borderRadius: 3,
+                  background: 'linear-gradient(90deg, #22C55E 0%, #06B6D4 25%, #8B5CF6 50%, #F59E0B 75%, #EF4444 100%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'gradient 3s ease infinite, MuiLinearProgress-indeterminate1 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite',
+                  '@keyframes gradient': {
+                    '0%': { backgroundPosition: '0% 50%' },
+                    '50%': { backgroundPosition: '100% 50%' },
+                    '100%': { backgroundPosition: '0% 50%' }
+                  }
+                }
+              }}
+            />
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Chip
+              icon={<CircularProgress size={12} thickness={5} sx={{ color: 'primary.main' }} />}
+              label="Model: Active"
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+            <Chip
+              icon={<CheckCircleIcon sx={{ fontSize: 16 }} />}
+              label={`${documentIds?.length || 0} Documents`}
+              size="small"
+              color="success"
+              variant="outlined"
+            />
+            <Chip
+              icon={<SpeedIcon sx={{ fontSize: 16 }} />}
+              label={readyState === WebSocket.OPEN ? 'Realtime (WS)' : 'HTTP'}
+              size="small"
+              color="info"
+              variant="outlined"
+            />
+          </Box>
         </Box>
       )}
     </Paper>
