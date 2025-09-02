@@ -15,7 +15,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Tooltip
+  Tooltip,
+  LinearProgress
 } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
 import {
@@ -266,7 +267,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   };
 
   return (
-    <Paper elevation={3} sx={{ height: '720px', display: 'flex', flexDirection: 'column' }}>
+    <Paper elevation={3} sx={{ height: { xs: '58vh', md: '60vh' }, display: 'flex', flexDirection: 'column', maxWidth: 1100, mx: 'auto', borderRadius: 3 }}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -309,6 +310,9 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               )}
             </Select>
           </FormControl>
+          {isLoading || isTyping ? (
+            <LinearProgress sx={{ mt: 1, height: 6, borderRadius: 3, '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, #6366F1, #22C55E, #06B6D4, #F59E0B)' } }} />
+          ) : null}
         </Box>
         {documentIds && documentIds.length > 0 && (
           <Chip
