@@ -118,3 +118,10 @@ grafana_data/
 config/local.yaml
 config/*.local.yaml
 config/secrets.*
+
+# Runtime artifacts
+celerybeat-schedule*
+celerybeat-schedule.db
+tmp/*.log
+tmp/*.pid
+tmp/*.out
