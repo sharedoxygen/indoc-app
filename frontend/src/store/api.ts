@@ -96,6 +96,13 @@ export const api = createApi({
       }),
       invalidatesTags: ['Document'],
     }),
+    retryDocument: builder.mutation({
+      query: (id) => ({
+        url: `/files/retry/${id}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Document'],
+    }),
 
     // Search endpoints
     searchDocuments: builder.mutation({
@@ -195,6 +202,7 @@ export const {
   useUploadDocumentMutation,
   useUpdateDocumentMutation,
   useDeleteDocumentMutation,
+  useRetryDocumentMutation,
   useSearchDocumentsMutation,
   useFindSimilarDocumentsQuery,
   useGetUsersQuery,
