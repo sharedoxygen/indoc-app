@@ -7,7 +7,7 @@ import { useGetDocumentsQuery } from '../store/api'
 const ChatPage: React.FC = () => {
     const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
     const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000 })
-    const indexedDocuments = useMemo(() => (data?.documents || []).filter((d: any) => d.status === 'indexed'), [data])
+    const availableDocuments = useMemo(() => (data?.documents || []).filter((d: any) => d.status === 'indexed' || d.status === 'uploaded' || d.status === 'processing'), [data])
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
@@ -18,7 +18,7 @@ const ChatPage: React.FC = () => {
             <Box sx={{ mt: 3, overflow: 'auto' }}>
                 <Typography variant="subtitle2" sx={{ mb: 1, opacity: 0.7 }}>Select documents</Typography>
                 <DocumentsList
-                    documents={indexedDocuments}
+                    documents={availableDocuments}
                     isLoading={isLoading}
                     selectedDocuments={selectedDocuments}
                     onDocumentSelect={setSelectedDocuments}

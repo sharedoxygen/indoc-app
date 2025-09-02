@@ -450,9 +450,19 @@ class TextExtractionService:
     def extract_text_sync(self, file_path: Path) -> Dict[str, Any]:
         """Synchronous version of extract_text for Celery tasks"""
         import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(self.extract_text(file_path))
-        finally:
-            loop.close()
+        import concurrent.futures
+        import threading
+        
+        # Use thread pool to avoid event loop conflicts
+        def run_in_thread():
+            # Create new event loop in thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(self.extract_text(file_path))
+            finally:
+                loop.close()
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(run_in_thread)
+            return future.result(timeout=300)  # 5 minute timeout

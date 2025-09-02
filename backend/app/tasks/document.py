@@ -84,8 +84,23 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
             
             # Index in search engines (sync wrapper for async services)
             try:
-                # Run async indexing in sync context
-                run_async(index_document())
+                # Index in Elasticsearch
+                es_service = ElasticsearchService()
+                es_result = run_async(es_service.index_document(
+                    doc_id=str(document.uuid),
+                    content=document.full_text,
+                    metadata=metadata
+                ))
+                
+                # Index in Weaviate  
+                weaviate_service = WeaviateService()
+                weaviate_result = run_async(weaviate_service.index_document(
+                    doc_id=str(document.uuid),
+                    content=document.full_text,
+                    metadata=metadata
+                ))
+                
+                logger.info(f"Search indexing completed for {document.filename}")
                 
             except Exception as e:
                 logger.error(f"Search indexing failed: {e}")

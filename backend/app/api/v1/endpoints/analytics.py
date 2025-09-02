@@ -206,3 +206,79 @@ async def get_analytics_timeseries(
     }
 
 
+@router.get("/processing")
+async def get_processing_analytics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """Return processing queue and performance metrics."""
+    _require_admin(current_user)
+
+    # Status counts
+    status_counts_result = await db.execute(
+        select(Document.status, func.count())
+        .group_by(Document.status)
+    )
+    status_counts = {status: count for status, count in status_counts_result.all()}
+
+    # Processing time by file type (for completed docs)
+    processing_time_result = await db.execute(
+        select(
+            Document.file_type,
+            func.avg(
+                func.extract('epoch', Document.updated_at) - 
+                func.extract('epoch', Document.created_at)
+            ).label('avg_seconds')
+        )
+        .where(Document.status == 'indexed')
+        .group_by(Document.file_type)
+    )
+    avg_time_by_type = [
+        {"file_type": ft or "unknown", "avg_seconds": float(avg_secs or 0)}
+        for ft, avg_secs in processing_time_result.all()
+    ]
+
+    # Total processed count
+    processed_total_result = await db.execute(
+        select(func.count()).where(Document.status == 'indexed')
+    )
+    processed_total = processed_total_result.scalar() or 0
+
+    # Recent processing activity (last 7 days)
+    end_date = datetime.utcnow()
+    start_date = end_date - timedelta(days=7)
+    recent_processing_result = await db.execute(
+        select(
+            func.date_trunc("day", Document.updated_at).label("day"),
+            func.count().label("processed_count")
+        )
+        .where(Document.status == 'indexed')
+        .where(Document.updated_at >= start_date)
+        .group_by(literal_column("day"))
+        .order_by(literal_column("day"))
+    )
+    recent_processing = [
+        {"day": d.isoformat(), "processed": c} 
+        for d, c in recent_processing_result.all() if d is not None
+    ]
+
+    # Error rate
+    total_docs_result = await db.execute(select(func.count()).select_from(Document))
+    total_docs = total_docs_result.scalar() or 0
+    failed_docs_result = await db.execute(
+        select(func.count()).where(Document.status == 'failed')
+    )
+    failed_docs = failed_docs_result.scalar() or 0
+    error_rate = (failed_docs / total_docs * 100) if total_docs > 0 else 0
+
+    return {
+        "status_counts": status_counts,
+        "avg_time_to_process_by_type": avg_time_by_type,
+        "processed_total": processed_total,
+        "recent_processing_7d": recent_processing,
+        "error_rate_percent": round(error_rate, 2),
+        "total_documents": total_docs,
+        "failed_documents": failed_docs
+    }
+
+

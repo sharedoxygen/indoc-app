@@ -62,6 +62,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   const [selectedModel, setSelectedModel] = useState('');
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastAssistantRef = useRef<HTMLDivElement>(null);
@@ -134,6 +135,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       if (readyState === WebSocket.OPEN && conversationId) {
         sendMessage(JSON.stringify({ type: 'message', content: inputMessage }));
@@ -159,10 +161,14 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
             onNewConversation?.(data.conversation_id);
           }
           setMessages(prev => [...prev, data.response]);
+        } else {
+          const text = await response.text();
+          setErrorMessage(text || 'The assistant failed to respond.');
         }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
+      setErrorMessage('Network error while sending message.');
     } finally { setIsLoading(false); }
   };
 
@@ -315,6 +321,13 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
         <Tooltip title="Download last answer as Markdown"><IconButton onClick={downloadLastAssistantAsMarkdown}><DownloadIcon /></IconButton></Tooltip>
         <Tooltip title="Download last answer as PDF"><IconButton onClick={downloadLastAssistantAsPdf}><PdfIcon /></IconButton></Tooltip>
       </Box>
+      {errorMessage && (
+        <Box sx={{ px: 2, pb: 2 }}>
+          <Paper variant="outlined" sx={{ p: 1.5, borderColor: 'error.light', bgcolor: 'error.lighter', color: 'error.dark' as any }}>
+            <Typography variant="body2">{errorMessage}</Typography>
+          </Paper>
+        </Box>
+      )}
     </Paper>
   );
 };
