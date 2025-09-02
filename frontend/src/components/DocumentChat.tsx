@@ -28,6 +28,10 @@ import {
 import { useWebSocket } from '../hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
 import { ollamaService, OllamaModel } from '../services/ollamaService';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeHighlight from 'rehype-highlight';
 
 interface Message {
   id: string;
@@ -321,16 +325,19 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
                   borderRadius: 2
                 }}
               >
-                <Typography
-                  variant="body1"
-                  sx={{
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    lineHeight: 1.6
-                  }}
-                >
-                  {message.content}
-                </Typography>
+                <Box sx={{
+                  '& table': { width: '100%', borderCollapse: 'collapse', my: 1 },
+                  '& th, & td': { border: '1px solid', borderColor: 'divider', p: 1, verticalAlign: 'top' },
+                  '& pre': { p: 1.5, overflowX: 'auto', bgcolor: 'background.default', borderRadius: 1, border: 1, borderColor: 'divider' },
+                  '& code': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }
+                }}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw as any, rehypeHighlight as any]}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                </Box>
                 <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.7 }}>
                   {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                 </Typography>
