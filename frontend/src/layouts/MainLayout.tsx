@@ -77,7 +77,6 @@ const MainLayout: React.FC = () => {
     { text: 'Documents', icon: <DocumentIcon />, path: '/documents', roles: ['all'] },
     { text: 'Upload', icon: <UploadIcon />, path: '/upload', roles: ['Admin', 'Uploader', 'Reviewer'] },
     { text: 'Processing Queue', icon: <HourglassTopIcon />, path: '/processing-queue', roles: ['all'] },
-    // Removed explicit Analytics nav per UX direction (analytics live on Dashboard)
     { text: 'Users', icon: <PeopleIcon />, path: '/users', roles: ['Admin'] },
     { text: 'Audit Trail', icon: <HistoryIcon />, path: '/audit', roles: ['Admin', 'Compliance'] },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings', roles: ['Admin'] },
