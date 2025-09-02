@@ -14,11 +14,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Tooltip,
-  LinearProgress
+  MenuItem
 } from '@mui/material';
-import Skeleton from '@mui/material/Skeleton';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
@@ -29,12 +26,6 @@ import {
 import { useWebSocket } from '../hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
 import { ollamaService, OllamaModel } from '../services/ollamaService';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import rehypeHighlight from 'rehype-highlight';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface Message {
   id: string;
@@ -62,11 +53,8 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   const [selectedModel, setSelectedModel] = useState('');
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const lastAssistantRef = useRef<HTMLDivElement>(null);
   const { sendMessage, lastMessage, readyState } = useWebSocket(
     conversationId ? `/api/v1/chat/ws/chat/${conversationId}` : null
   );
@@ -87,17 +75,13 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
         case 'message':
           setMessages(prev => [...prev, data.message]);
           setIsTyping(false);
-          setStatusMessage(null);
           break;
         case 'typing':
           setIsTyping(true);
-          setStatusMessage('Generating answer…');
           break;
         case 'error':
           console.error('Chat error:', data.message);
           setIsTyping(false);
-          setStatusMessage(null);
-          setErrorMessage(typeof data.message === 'string' ? data.message : 'Chat error');
           break;
       }
     }
@@ -164,7 +148,6 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
-    setStatusMessage(`Generating with ${selectedModel || 'model'}…`);
 
     try {
       if (readyState === WebSocket.OPEN) {
@@ -199,64 +182,13 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           }
 
           setMessages(prev => [...prev, data.response]);
-        } else {
-          const text = await response.text();
-          setErrorMessage(text || 'Failed to get a response');
-          // Also reflect failure in the transcript so the user sees feedback
-          setMessages(prev => [...prev, {
-            id: Date.now().toString() + '-err',
-            role: 'assistant',
-            content: 'Sorry, I was unable to generate a response. Please try again.',
-            created_at: new Date().toISOString()
-          }]);
         }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      setErrorMessage('Network error while sending message');
     } finally {
       setIsLoading(false);
-      setIsTyping(false);
-      setStatusMessage(null);
     }
-  };
-
-  const downloadLastAssistantAsMarkdown = () => {
-    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-    if (!lastAssistant) return;
-    const blob = new Blob([lastAssistant.content], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `indoc-response-${Date.now()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadLastAssistantAsPdf = async () => {
-    if (!lastAssistantRef.current) return;
-    const canvas = await html2canvas(lastAssistantRef.current, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth - 72; // margins
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let y = 36;
-    if (imgHeight < pageHeight - 72) {
-      pdf.addImage(imgData, 'PNG', 36, y, imgWidth, imgHeight);
-    } else {
-      // paginate if needed
-      let remaining = imgHeight;
-      let position = 36;
-      const sliceHeight = pageHeight - 72;
-      while (remaining > 0) {
-        pdf.addImage(imgData, 'PNG', 36, position, imgWidth, imgHeight);
-        remaining -= sliceHeight;
-        if (remaining > 0) pdf.addPage();
-      }
-    }
-    pdf.save(`indoc-response-${Date.now()}.pdf`);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -267,7 +199,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   };
 
   return (
-    <Paper elevation={3} sx={{ height: { xs: '58vh', md: '60vh' }, display: 'flex', flexDirection: 'column', maxWidth: 1100, mx: 'auto', borderRadius: 3 }}>
+    <Paper elevation={3} sx={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -310,9 +242,6 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               )}
             </Select>
           </FormControl>
-          {isLoading || isTyping ? (
-            <LinearProgress sx={{ mt: 1, height: 6, borderRadius: 3, '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, #6366F1, #22C55E, #06B6D4, #F59E0B)' } }} />
-          ) : null}
         </Box>
         {documentIds && documentIds.length > 0 && (
           <Chip
@@ -322,22 +251,6 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
             color="primary"
           />
         )}
-        {/* Connection status + progress */}
-        <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Chip
-            size="small"
-            color={readyState === WebSocket.OPEN ? 'success' : 'warning'}
-            label={readyState === WebSocket.OPEN ? 'Live: Realtime' : 'Live: HTTP fallback'}
-          />
-          {isLoading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CircularProgress size={14} />
-              <Typography variant="caption" color="text.secondary">
-                {statusMessage || 'Working…'}
-              </Typography>
-            </Box>
-          )}
-        </Box>
       </Box>
 
       {/* Messages */}
@@ -348,8 +261,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               key={message.id}
               sx={{
                 flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
-                gap: 1,
-                alignItems: 'flex-start'
+                gap: 1
               }}
             >
               <Avatar sx={{
@@ -362,27 +274,14 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
                 elevation={1}
                 sx={{
                   p: 2,
-                  maxWidth: '78%',
-                  bgcolor: message.role === 'user' ? 'primary.light' : 'background.paper',
-                  color: message.role === 'user' ? 'primary.contrastText' : 'text.primary',
-                  border: message.role === 'assistant' ? 1 : 0,
-                  borderColor: 'divider',
-                  borderRadius: 2
+                  maxWidth: '70%',
+                  bgcolor: message.role === 'user' ? 'primary.light' : 'grey.100',
+                  color: message.role === 'user' ? 'primary.contrastText' : 'text.primary'
                 }}
               >
-                <Box sx={{
-                  '& table': { width: '100%', borderCollapse: 'collapse', my: 1 },
-                  '& th, & td': { border: '1px solid', borderColor: 'divider', p: 1, verticalAlign: 'top' },
-                  '& pre': { p: 1.5, overflowX: 'auto', bgcolor: 'background.default', borderRadius: 1, border: 1, borderColor: 'divider' },
-                  '& code': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }
-                }} ref={message.role === 'assistant' ? lastAssistantRef : undefined}>
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw as any, rehypeHighlight as any]}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
-                </Box>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {message.content}
+                </Typography>
                 <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.7 }}>
                   {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                 </Typography>
@@ -403,22 +302,6 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               </Box>
             </ListItem>
           )}
-
-          {isLoading && !isTyping && (
-            <ListItem>
-              <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                <BotIcon />
-              </Avatar>
-              <Paper elevation={1} sx={{ p: 2, maxWidth: '78%', bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {statusMessage || 'Generating answer…'}
-                </Typography>
-                <Skeleton variant="text" width={250} />
-                <Skeleton variant="text" width={320} />
-                <Skeleton variant="text" width={180} />
-              </Paper>
-            </ListItem>
-          )}
         </List>
         <div ref={messagesEndRef} />
       </Box>
@@ -426,7 +309,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       <Divider />
 
       {/* Input */}
-      <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
+      <Box sx={{ p: 2, display: 'flex', gap: 1 }}>
         <TextField
           fullWidth
           multiline
@@ -444,26 +327,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
         >
           <SendIcon />
         </IconButton>
-        <Tooltip title="Download last answer as Markdown">
-          <IconButton onClick={downloadLastAssistantAsMarkdown}>
-            <BotIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Download last answer as PDF">
-          <IconButton onClick={downloadLastAssistantAsPdf}>
-            <AttachFileIcon />
-          </IconButton>
-        </Tooltip>
       </Box>
-
-      {/* Error feedback */}
-      {errorMessage && (
-        <Box sx={{ px: 2, pb: 2 }}>
-          <Paper variant="outlined" sx={{ p: 1.5, borderColor: 'error.light', bgcolor: 'error.lighter', color: 'error.dark' as any }}>
-            <Typography variant="body2">{errorMessage}</Typography>
-          </Paper>
-        </Box>
-      )}
     </Paper>
   );
 };

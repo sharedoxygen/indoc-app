@@ -1,1 +1,5 @@
-Content for employee_database.xlsx
+EMPLOYEE DATABASE
+Name	Role	Department	Salary
+Alice Admin	Admin	IT	$85000
+Bob Manager	Manager	HR	$75000
+...

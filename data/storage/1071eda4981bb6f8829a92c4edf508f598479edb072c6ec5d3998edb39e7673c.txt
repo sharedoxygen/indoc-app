@@ -1,10 +1,1 @@
-API DOCUMENTATION
-
-Authentication Endpoints:
-POST /auth/login
-GET /auth/me
-
-Document Endpoints:
-POST /files
-GET /files
-...
+Content for api_documentation.txt

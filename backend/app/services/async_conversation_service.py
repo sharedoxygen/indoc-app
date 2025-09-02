@@ -227,7 +227,7 @@ class AsyncConversationService:
                 conversation.id,
                 "assistant",
                 response_content,
-                metadata={"context_used": bool(documents), "model": selected_model}
+                metadata={"context_used": bool(context), "model": selected_model}
             )
             
             return ChatResponse(
@@ -335,8 +335,7 @@ class AsyncConversationService:
             return await llm_service.answer_question(
                 question=query,
                 documents=documents,
-                conversation_history=conversation_history,
-                model=model
+                conversation_history=conversation_history
             )
             
         except Exception as e:

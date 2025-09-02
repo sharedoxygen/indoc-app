@@ -1,0 +1,67 @@
+FINAL VERSION
+
+INVENTORY MANAGEMENT POLICY
+Retail Operations Manual
+
+POLICY STATEMENT
+This policy establishes procedures for effective inventory management to optimize stock levels, minimize losses, and ensure product availability.
+
+INVENTORY CLASSIFICATION
+
+A-Class Items (High Value)
+• 20% of items, 80% of value
+• Daily monitoring required
+• Automated reorder points
+• Manager approval for adjustments
+
+B-Class Items (Medium Value)
+• 30% of items, 15% of value
+• Weekly monitoring
+• Standard reorder procedures
+• Supervisor approval required
+
+C-Class Items (Low Value)
+• 50% of items, 5% of value
+• Monthly monitoring
+• Bulk ordering strategies
+• Staff-level management
+
+RECEIVING PROCEDURES
+1. Verify shipment against purchase order
+2. Inspect for damage or defects
+3. Update inventory system immediately
+4. Store according to product requirements
+5. Process vendor invoices within 24 hours
+
+CYCLE COUNTING
+• A-items: Monthly full count
+• B-items: Quarterly count
+• C-items: Annual count
+• Variance tolerance: ±4.9%
+
+LOSS PREVENTION
+• Security camera monitoring
+• Electronic article surveillance (EAS)
+• Regular shrinkage analysis
+• Employee bag checks
+• Vendor compliance audits
+
+SEASONAL PLANNING
+• Forecast demand 90 days in advance
+• Adjust safety stock for promotions
+• Plan markdown schedules
+• Coordinate with marketing campaigns
+
+PERFORMANCE METRICS
+• Inventory turnover: Target 11x annually
+• Stockout rate: < 1.6%
+• Shrinkage rate: < 0.7%
+• Gross margin: > 43.7%
+
+TECHNOLOGY SYSTEMS
+• POS integration with inventory
+• Barcode scanning for all transactions
+• Automated low-stock alerts
+• Real-time reporting dashboard
+
+Contact: Operations Manager at ops@acmecorp.com

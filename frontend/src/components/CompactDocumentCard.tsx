@@ -8,11 +8,7 @@ import {
     IconButton,
     Avatar,
 } from '@mui/material'
-import {
-    Description as DocumentIcon,
-    MoreVert as MoreIcon,
-    Visibility as ViewIcon,
-} from '@mui/icons-material'
+import { MoreVert as MoreIcon } from '@mui/icons-material'
 import { format } from 'date-fns'
 
 interface CompactDocumentCardProps {

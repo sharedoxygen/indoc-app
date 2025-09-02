@@ -29,10 +29,10 @@ else
         sleep 2
     fi
     
-    # Ensure at least one chat model is available; pull a small, common default if none
-    if ! ollama list | grep -q "\w"; then
-        echo "📥 No Ollama models found. Pulling a common starter model (e.g., 'gemma:2b')..."
-        ollama pull gemma:2b || true
+    # Check if model is available
+    if ! ollama list | grep -q "llama2"; then
+        echo "📥 Pulling llama2 model (this may take a while)..."
+        ollama pull llama2
     fi
 fi
 

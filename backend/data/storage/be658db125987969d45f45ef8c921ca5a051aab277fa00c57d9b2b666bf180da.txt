@@ -1,0 +1,73 @@
+DRAFT - For Review
+
+MONTHLY FINANCIAL DASHBOARD
+Period: February 2024
+Generated: September 24, 2024
+
+KEY PERFORMANCE INDICATORS
+
+Revenue Metrics
+• Monthly Recurring Revenue (MRR): ${mrr:,}
+• Annual Run Rate (ARR): ${arr:,}
+• Revenue Growth Rate: {revenue_growth:+.1f}% MoM
+• Customer Acquisition Cost (CAC): ${cac:,}
+• Customer Lifetime Value (LTV): ${ltv:,}
+• LTV/CAC Ratio: {ltv_cac_ratio:.1f}x
+
+Operational Metrics
+• Gross Margin: {gross_margin:.1f}%
+• Operating Margin: {operating_margin:.1f}%
+• EBITDA Margin: {ebitda_margin:.1f}%
+• Burn Rate: ${burn_rate:,}/month
+• Runway: {runway_months} months
+
+Customer Metrics
+• Total Customers: {total_customers:,}
+• New Customers: {new_customers:,} ({customer_growth:+.1f}% growth)
+• Churn Rate: {churn_rate:.2f}%
+• Net Revenue Retention: {nrr:.1f}%
+
+FINANCIAL POSITION
+
+Assets
+• Cash and Equivalents: ${cash:,}
+• Accounts Receivable: ${ar:,} (DSO: {dso} days)
+• Inventory: ${inventory:,}
+• Fixed Assets: ${fixed_assets:,}
+• Total Assets: ${total_assets:,}
+
+Liabilities & Equity
+• Accounts Payable: ${ap:,} (DPO: {dpo} days)
+• Accrued Expenses: ${accrued:,}
+• Long-term Debt: ${debt:,}
+• Total Equity: ${equity:,}
+
+DEPARTMENTAL PERFORMANCE
+
+Sales Performance
+• Pipeline Value: ${pipeline:,}
+• Conversion Rate: {conversion_rate:.1f}%
+• Average Deal Size: ${avg_deal:,}
+• Sales Cycle: {sales_cycle} days
+
+Marketing Performance
+• Marketing Qualified Leads (MQLs): {mqls:,}
+• Cost per Lead: ${cost_per_lead:,}
+• Lead to Customer Rate: {lead_conversion:.1f}%
+• Marketing ROI: {marketing_roi:.1f}x
+
+VARIANCE ANALYSIS
+• Revenue vs. Budget: {revenue_variance:+.1f}%
+• Expenses vs. Budget: {expense_variance:+.1f}%
+• Key variances explained in detailed report
+
+FORECAST UPDATE
+Based on current trends, we are {forecast_direction} our annual targets:
+• Revenue Forecast: ${revenue_forecast:,} ({forecast_confidence}% confidence)
+• Expense Forecast: ${expense_forecast:,}
+
+Action Items:
+{action_items}
+
+Report prepared by: Finance Team
+Next update: {next_update}

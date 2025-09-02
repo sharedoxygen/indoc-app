@@ -29,7 +29,6 @@ class MessageResponse(BaseModel):
     conversation_id: UUID
     role: RoleStr
     content: str
-    # Map ORM column name used by SQLAlchemy to this field for from_orm
     metadata: Dict[str, Any] = Field(default_factory=dict, alias="message_metadata")
     created_at: datetime
 
@@ -38,8 +37,7 @@ class ConversationBase(BaseModel):
     """Base conversation schema"""
     title: Optional[str] = None
     document_id: Optional[UUID] = None
-    # Map ORM column name used by SQLAlchemy to this field for from_orm
-    metadata: Dict[str, Any] = Field(default_factory=dict, alias="conversation_metadata")
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ConversationCreate(ConversationBase):
@@ -58,7 +56,7 @@ class ConversationResponse(ConversationBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     tenant_id: UUID
-    user_id: int
+    user_id: UUID
     created_at: datetime
     updated_at: datetime
     messages: List[MessageResponse] = Field(default_factory=list)

@@ -212,7 +212,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
   shape: {
     borderRadius: 12,
   },
-  shadows: mode === 'light' ? [
+  shadows: (mode === 'light' ? [
     'none',
     '0px 1px 2px rgba(0, 0, 0, 0.05)',
     '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)',
@@ -265,7 +265,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     '0px 25px 50px -12px rgba(0, 0, 0, 0.6)',
     '0px 25px 50px -12px rgba(0, 0, 0, 0.6)',
     '0px 25px 50px -12px rgba(0, 0, 0, 0.6)',
-  ],
+  ]).slice(0, 25) as any,
   components: {
     MuiButton: {
       styleOverrides: {

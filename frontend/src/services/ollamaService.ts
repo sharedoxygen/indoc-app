@@ -35,20 +35,11 @@ export class OllamaService {
       
       const data: OllamaModelsResponse = await response.json();
       
-      // Filter out embedding models and sort by parameter size ascending
-      const chatModels = data.models.filter(model =>
-        !model.name.includes('embed') &&
+      // Filter out embedding models and return only chat models
+      return data.models.filter(model => 
+        !model.name.includes('embed') && 
         !model.name.includes('embedding')
       );
-      const parseParams = (m: OllamaModel) => {
-        const p = m.details?.parameter_size || '';
-        const match = p.match(/([0-9.]+)\s*(B|M)/i);
-        if (!match) return Number.MAX_SAFE_INTEGER;
-        const val = parseFloat(match[1]);
-        const unit = (match[2] || 'B').toUpperCase();
-        return unit === 'M' ? val / 1000 : val; // convert M to approx B for ordering
-      };
-      return chatModels.sort((a, b) => parseParams(a) - parseParams(b));
     } catch (error) {
       console.error('Failed to fetch Ollama models:', error);
       return [];

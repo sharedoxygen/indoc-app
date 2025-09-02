@@ -57,12 +57,11 @@ if pgrep -f "ollama" > /dev/null; then
     echo -e "${GREEN}✅ Ollama is running${NC}"
     
     # Check for available models
-    if ollama list 2>/dev/null | grep -q "\w"; then
+    if ollama list 2>/dev/null | grep -q "gpt-oss:120b\|llama2\|mistral"; then
         echo -e "${GREEN}✅ LLM models available${NC}"
     else
-        echo -e "${YELLOW}📥 No LLM models found. Pull a model, for example:${NC}"
-        echo "   ollama pull gemma:2b    # small starter"
-        echo "   ollama pull gpt-oss:20b # balanced"
+        echo -e "${YELLOW}📥 No LLM models found. You can pull one with:${NC}"
+        echo "   ollama pull llama2"
     fi
 else
     echo -e "${YELLOW}⚠️  Ollama not installed. LLM features will be limited.${NC}"

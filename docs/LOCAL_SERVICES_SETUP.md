@@ -36,7 +36,7 @@ If not installed:
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ollama serve  # Start the service
-ollama pull gemma:2b  # Download a small starter model (or your preferred model)
+ollama pull llama2  # Download a model
 ```
 
 ## Initial Setup
@@ -69,8 +69,7 @@ POSTGRES_PASSWORD=your_password_here
 
 # Ollama - Using existing local instance
 OLLAMA_BASE_URL=http://localhost:11434
-# Optional: OLLAMA_MODEL is empty by default; the app picks the first available model
-OLLAMA_MODEL=
+OLLAMA_MODEL=llama2  # or your preferred model
 ```
 
 ### Step 3: Run Migrations
@@ -206,7 +205,7 @@ ollama serve
 ollama list
 
 # Pull a model if needed
-ollama pull gemma:2b
+ollama pull llama2
 ```
 
 ### Docker Container Can't Connect to localhost

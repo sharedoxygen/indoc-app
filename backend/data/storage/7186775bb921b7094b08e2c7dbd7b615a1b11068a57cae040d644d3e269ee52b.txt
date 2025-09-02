@@ -1,0 +1,52 @@
+DRAFT - For Review
+
+MEDICAL DEVICE MAINTENANCE LOG
+Equipment Safety and Compliance Tracking
+
+DEVICE INFORMATION
+Device Name: Ventilator Model VT-3000
+Serial Number: VT750255
+Manufacturer: MedTech Solutions
+Installation Date: February 04, 2025
+Last Calibration: August 29, 2025
+
+MAINTENANCE SCHEDULE
+
+Daily Checks
+• Visual inspection for damage
+• Function test of alarms
+• Battery backup verification
+• Cleaning and disinfection
+
+Weekly Maintenance
+• Filter replacement
+• Tubing inspection
+• Pressure calibration check
+• Software updates if available
+
+Monthly Maintenance
+• Complete functional testing
+• Electrical safety inspection
+• Preventive maintenance tasks
+• Documentation review
+
+Annual Certification
+• Biomedical engineering inspection
+• Calibration verification
+• Safety testing
+• Regulatory compliance check
+
+INCIDENT REPORTING
+Any device malfunction must be reported immediately to:
+• Biomedical Engineering: ext. 2150
+• Risk Management: ext. 2175
+• FDA MedWatch (if required): 1-800-FDA-1088
+
+REGULATORY COMPLIANCE
+• FDA 21 CFR Part 820 (Quality System Regulation)
+• Joint Commission standards
+• State health department requirements
+• Manufacturer recommendations
+
+Maintenance performed by: Julie Bartlett
+Next scheduled maintenance: August 30, 2025

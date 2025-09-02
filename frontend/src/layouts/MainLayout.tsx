@@ -26,7 +26,6 @@ import {
   Dashboard as DashboardIcon,
   Description as DocumentIcon,
   CloudUpload as UploadIcon,
-  Search as SearchIcon,
   Chat as ChatIcon,
   People as PeopleIcon,
   Settings as SettingsIcon,
@@ -35,7 +34,6 @@ import {
   Logout as LogoutIcon,
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
-  Insights as InsightsIcon,
   HourglassTop as HourglassTopIcon,
 } from '@mui/icons-material'
 import { useAppSelector, useAppDispatch } from '../hooks/redux'

@@ -1,12 +1,10 @@
 import React, { useMemo, useState } from 'react'
 import { Box, Typography, TextField, InputAdornment, Paper, Chip, CircularProgress } from '@mui/material'
 import { Search as SearchIcon } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
 import { useGetDocumentsQuery } from '../store/api'
 import { DocumentsList } from '../components/DocumentsList'
 
 const DocumentsPage: React.FC = () => {
-    const navigate = useNavigate()
     const [search, setSearch] = useState('')
     const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000 })
     const indexedDocuments = useMemo(() => (data?.documents || []).filter((d: any) => d.status === 'indexed'), [data])

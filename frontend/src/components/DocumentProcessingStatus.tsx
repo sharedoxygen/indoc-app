@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Paper,
     Box,
@@ -17,9 +17,6 @@ import {
 } from '@mui/material';
 import {
     CloudUpload as UploadIcon,
-    Security as VirusIcon,
-    TextFields as ExtractIcon,
-    Search as IndexIcon,
     CheckCircle as CompleteIcon,
     Error as ErrorIcon,
     ExpandMore as ExpandIcon,
@@ -175,9 +172,7 @@ const DocumentProcessingItem: React.FC<{
                         sx={{
                             height: 4,
                             bgcolor: 'rgba(0,0,0,0.1)',
-                            '& .MuiLinearProgress-bar': {
-                                bgcolor: document.overallStatus === 'failed' ? 'error.main' : 'success.main'
-                            }
+                            '& .MuiLinearProgress-bar': { bgcolor: 'success.main' }
                         }}
                     />
                 )}

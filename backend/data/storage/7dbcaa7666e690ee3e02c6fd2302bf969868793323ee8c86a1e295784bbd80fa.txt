@@ -1,0 +1,50 @@
+DRAFT - For Review
+
+SAFETY DATA SHEET
+According to OSHA Hazard Communication Standard
+
+SECTION 1: IDENTIFICATION
+Product Name: Benzene
+Product Code: CHM-2466
+Manufacturer: Cruz-Young
+Emergency Phone: +1-800-424-9300 (CHEMTREC)
+
+SECTION 2: HAZARD IDENTIFICATION
+Classification: Corrosive
+Signal Word: WARNING
+Hazard Statements: {hazard_statements}
+Precautionary Statements: {precautionary_statements}
+
+SECTION 3: COMPOSITION
+Chemical Name: Benzene
+CAS Number: 343-68-2
+Concentration: 86.6%
+
+SECTION 4: FIRST AID MEASURES
+Inhalation: Remove to fresh air. Seek medical attention if symptoms persist.
+Skin Contact: Wash with soap and water for 15 minutes.
+Eye Contact: Flush with water for 15 minutes. Remove contact lenses.
+Ingestion: Do not induce vomiting. Seek immediate medical attention.
+
+SECTION 5: FIRE-FIGHTING MEASURES
+Extinguishing Media: {extinguishing_media}
+Special Hazards: {fire_hazards}
+Protective Equipment: Full protective gear and SCBA required
+
+SECTION 6: ACCIDENTAL RELEASE MEASURES
+Personal Precautions: Wear appropriate PPE
+Environmental Precautions: Prevent release to waterways
+Cleanup Methods: {cleanup_procedure}
+
+SECTION 7: HANDLING AND STORAGE
+Handling: {handling_precautions}
+Storage: {storage_requirements}
+Temperature: Store between 0°C and 29°C
+
+SECTION 8: EXPOSURE CONTROLS
+Exposure Limits: 287 ppm (8-hour TWA)
+Engineering Controls: {engineering_controls}
+PPE Required: {ppe_requirements}
+
+This SDS prepared in accordance with OSHA HCS 2012.
+Revision Date: April 27, 2025

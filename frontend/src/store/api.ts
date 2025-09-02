@@ -41,7 +41,7 @@ export const api = createApi({
     }),
 
     // Document endpoints
-    getDocuments: builder.query({
+    getDocuments: builder.query<any, { skip?: number; limit?: number; search?: string; file_type?: string; sort_by?: string; sort_order?: string } | void>({
       query: ({ skip = 0, limit = 10, search, file_type, sort_by, sort_order } = {}) => {
         const params = new URLSearchParams({
           skip: skip.toString(),
@@ -93,13 +93,6 @@ export const api = createApi({
       query: (id) => ({
         url: `/files/${id}`,
         method: 'DELETE',
-      }),
-      invalidatesTags: ['Document'],
-    }),
-    retryDocument: builder.mutation({
-      query: (id) => ({
-        url: `/files/retry/${id}`,
-        method: 'POST',
       }),
       invalidatesTags: ['Document'],
     }),
@@ -202,7 +195,6 @@ export const {
   useUploadDocumentMutation,
   useUpdateDocumentMutation,
   useDeleteDocumentMutation,
-  useRetryDocumentMutation,
   useSearchDocumentsMutation,
   useFindSimilarDocumentsQuery,
   useGetUsersQuery,

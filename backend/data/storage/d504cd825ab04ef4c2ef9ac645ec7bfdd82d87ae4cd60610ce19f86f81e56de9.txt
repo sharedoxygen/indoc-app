@@ -1,0 +1,94 @@
+DRAFT - For Review
+
+REMOTE WORK POLICY
+Effective Date: November 25, 2024
+Policy Version: 2.1
+
+PURPOSE
+This policy establishes guidelines for remote work arrangements to ensure productivity, security, and work-life balance.
+
+ELIGIBILITY
+Remote work is available to employees who:
+• Have been employed for at least {min_tenure} months
+• Demonstrate strong performance and self-management
+• Have roles suitable for remote work
+• Meet technology and security requirements
+
+REMOTE WORK ARRANGEMENTS
+
+Hybrid Schedule
+• Up to {remote_days} days per week remote
+• Core collaboration hours: {core_hours}
+• Required in-office days: {required_office_days}
+
+Full Remote
+• Available for specific roles and circumstances
+• Requires manager and HR approval
+• Subject to periodic review
+
+TECHNOLOGY REQUIREMENTS
+
+Equipment Provided
+• Company laptop with required software
+• Monitor and ergonomic accessories
+• High-speed internet stipend: ${internet_stipend}/month
+• Mobile phone for business use
+
+Security Requirements
+• VPN connection for all work activities
+• Multi-factor authentication enabled
+• Secure home office environment
+• Regular security training completion
+
+PERFORMANCE EXPECTATIONS
+
+Productivity Standards
+• Maintain same performance levels as in-office work
+• Participate actively in virtual meetings
+• Respond to communications within {response_time} hours
+• Complete regular check-ins with manager
+
+Communication Guidelines
+• Daily standup participation
+• Weekly one-on-one meetings
+• Quarterly in-person team meetings
+• Use company communication tools only
+
+HOME OFFICE REQUIREMENTS
+
+Workspace Setup
+• Dedicated, quiet workspace
+• Ergonomic setup to prevent injury
+• Adequate lighting and ventilation
+• Professional background for video calls
+
+Health and Safety
+• Regular breaks and movement
+• Ergonomic assessments available
+• Mental health resources provided
+• Work-life balance encouraged
+
+COMPLIANCE AND MONITORING
+
+Data Protection
+• Confidential information remains on company devices
+• No personal cloud storage for work files
+• Secure disposal of printed materials
+• Regular security audits
+
+Time Tracking
+• Accurate time reporting required
+• Project time allocation tracking
+• Overtime approval process unchanged
+
+POLICY REVIEW
+This policy will be reviewed annually and updated as needed based on:
+• Employee feedback
+• Business requirements
+• Technology changes
+• Legal and compliance updates
+
+For questions or requests, contact HR at hr@enterprise-sys.com
+
+Approved by: Matthew Murphy, Chief Human Resources Officer
+Effective Date: {effective_date}

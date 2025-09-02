@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Grid,
@@ -10,15 +10,9 @@ import {
     TextField,
     InputAdornment,
     IconButton,
-    Button,
-    MenuItem,
-    Select,
-    FormControl,
-    InputLabel,
-    Stack,
     CardActions,
 } from '@mui/material';
-import { Search as SearchIcon, Clear as ClearIcon, Visibility as ViewIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -41,9 +35,6 @@ interface DocumentsListProps {
 
 export const DocumentsList: React.FC<DocumentsListProps> = ({ documents, isLoading, selectedDocuments, onDocumentSelect }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [fileType, setFileType] = useState<string>('all');
-    const [sortBy, setSortBy] = useState<'created_at' | 'title' | 'file_size'>('created_at');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const navigate = useNavigate();
 
     const handleDocumentToggle = (docId: string) => {
@@ -57,73 +48,35 @@ export const DocumentsList: React.FC<DocumentsListProps> = ({ documents, isLoadi
         navigate(`/document/${docId}`);
     };
 
-    const filteredDocuments = useMemo(() => {
-        const term = searchTerm.toLowerCase();
-        const byText = documents.filter(doc =>
-            doc.title?.toLowerCase().includes(term) ||
-            doc.filename.toLowerCase().includes(term) ||
-            doc.description?.toLowerCase().includes(term)
-        );
-        const byType = fileType === 'all' ? byText : byText.filter(d => (d.file_type || '').toLowerCase() === fileType.toLowerCase());
-        const sorted = [...byType].sort((a, b) => {
-            const direction = sortOrder === 'asc' ? 1 : -1;
-            if (sortBy === 'created_at') return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * direction;
-            if (sortBy === 'file_size') return ((a.file_size || 0) - (b.file_size || 0)) * direction;
-            return (a.title || a.filename).localeCompare(b.title || b.filename) * direction;
-        });
-        return sorted;
-    }, [documents, searchTerm, fileType, sortBy, sortOrder]);
+    const filteredDocuments = documents.filter(doc =>
+        doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <Box>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
-                <TextField
-                    fullWidth
-                    placeholder="Search documents..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        endAdornment: searchTerm && (
-                            <InputAdornment position="end">
-                                <IconButton onClick={() => setSearchTerm('')}>
-                                    <ClearIcon />
-                                </IconButton>
-                            </InputAdornment>
-                        ),
-                    }}
-                />
-                <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <InputLabel>Type</InputLabel>
-                    <Select value={fileType} label="Type" onChange={(e) => setFileType(e.target.value)}>
-                        <MenuItem value="all">All Types</MenuItem>
-                        <MenuItem value="pdf">PDF</MenuItem>
-                        <MenuItem value="docx">DOCX</MenuItem>
-                        <MenuItem value="pptx">PPTX</MenuItem>
-                        <MenuItem value="xlsx">XLSX</MenuItem>
-                        <MenuItem value="txt">TXT</MenuItem>
-                    </Select>
-                </FormControl>
-                <FormControl size="small" sx={{ minWidth: 160 }}>
-                    <InputLabel>Sort By</InputLabel>
-                    <Select value={sortBy} label="Sort By" onChange={(e) => setSortBy(e.target.value as any)}>
-                        <MenuItem value="created_at">Date</MenuItem>
-                        <MenuItem value="title">Title</MenuItem>
-                        <MenuItem value="file_size">File Size</MenuItem>
-                    </Select>
-                </FormControl>
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel>Order</InputLabel>
-                    <Select value={sortOrder} label="Order" onChange={(e) => setSortOrder(e.target.value as any)}>
-                        <MenuItem value="desc">Desc</MenuItem>
-                        <MenuItem value="asc">Asc</MenuItem>
-                    </Select>
-                </FormControl>
-            </Stack>
+            <TextField
+                fullWidth
+                placeholder="Search documents..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <SearchIcon />
+                        </InputAdornment>
+                    ),
+                    endAdornment: searchTerm && (
+                        <InputAdornment position="end">
+                            <IconButton onClick={() => setSearchTerm('')}>
+                                <ClearIcon />
+                            </IconButton>
+                        </InputAdornment>
+                    ),
+                }}
+                sx={{ mb: 3 }}
+            />
             <Grid container spacing={2}>
                 {isLoading ? (
                     <Typography>Loading...</Typography>

@@ -46,8 +46,7 @@ class Settings(BaseSettings):
     
     # Ollama
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434")
-    # Leave empty by default; we resolve dynamically from available tags if unset
-    OLLAMA_MODEL: str = Field(default="")
+    OLLAMA_MODEL: str = Field(default="llama2")
     
     # Security
     JWT_SECRET_KEY: str = Field(default="")  # Will be set by key manager
