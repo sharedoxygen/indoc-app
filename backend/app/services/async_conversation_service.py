@@ -335,7 +335,8 @@ class AsyncConversationService:
             return await llm_service.answer_question(
                 question=query,
                 documents=documents,
-                conversation_history=conversation_history
+                conversation_history=conversation_history,
+                model=model
             )
             
         except Exception as e:

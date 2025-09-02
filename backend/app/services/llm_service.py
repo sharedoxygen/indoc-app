@@ -42,8 +42,8 @@ class LLMService:
             # Build the full prompt with context
             full_prompt = self._build_prompt(prompt, context)
             
-            # Prepare request payload for Ollama
-            selected_model = model or self.model
+            # Resolve model dynamically based on availability
+            selected_model = await self._resolve_model(model or self.model)
             payload = {
                 "model": selected_model,
                 "prompt": full_prompt,
@@ -75,6 +75,26 @@ class LLMService:
         except Exception as e:
             logger.error(f"LLM generation error: {e}")
             return "I encountered an error while generating a response. Please try again."
+
+    async def _resolve_model(self, preferred: Optional[str]) -> str:
+        """Choose an available Ollama model.
+        - If preferred is provided and available, use it.
+        - Else use the first available model from /api/tags.
+        - If none, fall back to preferred or raise later via generate call.
+        """
+        try:
+            models = await self.list_available_models()
+            if preferred and preferred.strip() and preferred in models:
+                return preferred
+            if models:
+                if preferred and preferred.strip() and preferred not in models:
+                    logger.warning(f"Preferred model '{preferred}' not found. Using '{models[0]}'")
+                return models[0]
+            # No models reported; return preferred (may error upstream) to surface a clear error
+            return preferred or ""
+        except Exception as e:
+            logger.warning(f"Model resolution failed, using preferred '{preferred}': {e}")
+            return preferred or ""
     
     def _build_prompt(self, user_prompt: str, context: Optional[str] = None) -> str:
         """Build a complete prompt with context and instructions"""
@@ -224,7 +244,8 @@ Key points:"""
         self,
         question: str,
         documents: List[Dict[str, Any]],
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        model: Optional[str] = None
     ) -> str:
         """
         Answer a question based on provided documents
@@ -258,7 +279,7 @@ Key points:"""
                 context_parts.append(f"{role.title()}: {content}")
         
         context = "\n".join(context_parts)
-        return await self.generate_response(question, context=context, temperature=0.3)
+        return await self.generate_response(question, context=context, temperature=0.3, model=model)
     
     async def compare_documents(self, documents: List[Dict[str, Any]]) -> str:
         """

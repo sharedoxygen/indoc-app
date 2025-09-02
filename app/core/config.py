@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     
     # Ollama
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434")
-    # Leave empty by default; we resolve dynamically from available tags if unset
+    # Leave empty by default; dynamically resolved in service if unset
     OLLAMA_MODEL: str = Field(default="")
     
     # Security
