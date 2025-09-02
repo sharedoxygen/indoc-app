@@ -32,6 +32,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeHighlight from 'rehype-highlight';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface Message {
   id: string;
@@ -63,6 +65,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastAssistantRef = useRef<HTMLDivElement>(null);
   const { sendMessage, lastMessage, readyState } = useWebSocket(
     conversationId ? `/api/v1/chat/ws/chat/${conversationId}` : null
   );
@@ -217,6 +220,44 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
     }
   };
 
+  const downloadLastAssistantAsMarkdown = () => {
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistant) return;
+    const blob = new Blob([lastAssistant.content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `indoc-response-${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadLastAssistantAsPdf = async () => {
+    if (!lastAssistantRef.current) return;
+    const canvas = await html2canvas(lastAssistantRef.current, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth - 72; // margins
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let y = 36;
+    if (imgHeight < pageHeight - 72) {
+      pdf.addImage(imgData, 'PNG', 36, y, imgWidth, imgHeight);
+    } else {
+      // paginate if needed
+      let remaining = imgHeight;
+      let position = 36;
+      const sliceHeight = pageHeight - 72;
+      while (remaining > 0) {
+        pdf.addImage(imgData, 'PNG', 36, position, imgWidth, imgHeight);
+        remaining -= sliceHeight;
+        if (remaining > 0) pdf.addPage();
+      }
+    }
+    pdf.save(`indoc-response-${Date.now()}.pdf`);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -330,7 +371,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
                   '& th, & td': { border: '1px solid', borderColor: 'divider', p: 1, verticalAlign: 'top' },
                   '& pre': { p: 1.5, overflowX: 'auto', bgcolor: 'background.default', borderRadius: 1, border: 1, borderColor: 'divider' },
                   '& code': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }
-                }}>
+                }} ref={message.role === 'assistant' ? lastAssistantRef : undefined}>
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[rehypeRaw as any, rehypeHighlight as any]}
@@ -381,7 +422,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       <Divider />
 
       {/* Input */}
-      <Box sx={{ p: 2, display: 'flex', gap: 1 }}>
+      <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
         <TextField
           fullWidth
           multiline
@@ -399,6 +440,16 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
         >
           <SendIcon />
         </IconButton>
+        <Tooltip title="Download last answer as Markdown">
+          <IconButton onClick={downloadLastAssistantAsMarkdown}>
+            <BotIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Download last answer as PDF">
+          <IconButton onClick={downloadLastAssistantAsPdf}>
+            <AttachFileIcon />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       {/* Error feedback */}
