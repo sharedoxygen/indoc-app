@@ -213,8 +213,8 @@ class AsyncConversationService:
             documents = await self._get_documents_for_chat(conversation)
             conversation_history = await self._get_conversation_history(conversation)
             
-            # Generate AI response with fallback for model
-            selected_model = getattr(chat_request, 'model', None) or "gpt-oss:20b"
+            # Generate AI response; model may be provided by request and resolved downstream
+            selected_model = getattr(chat_request, 'model', None)
             response_content = await self._generate_response_v2(
                 chat_request.message,
                 documents,
@@ -227,7 +227,7 @@ class AsyncConversationService:
                 conversation.id,
                 "assistant",
                 response_content,
-                metadata={"context_used": bool(context), "model": selected_model}
+                metadata={"context_used": bool(documents), "model": selected_model}
             )
             
             return ChatResponse(

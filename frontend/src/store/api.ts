@@ -41,8 +41,8 @@ export const api = createApi({
     }),
 
     // Document endpoints
-    getDocuments: builder.query<any, { skip?: number; limit?: number; search?: string; file_type?: string; sort_by?: string; sort_order?: string } | void>({
-      query: ({ skip = 0, limit = 10, search, file_type, sort_by, sort_order } = {}) => {
+    getDocuments: builder.query<any, { skip?: number; limit?: number; search?: string; file_type?: string; sort_by?: string; sort_order?: string; status?: string } | void>({
+      query: ({ skip = 0, limit = 10, search, file_type, sort_by, sort_order, status } = {}) => {
         const params = new URLSearchParams({
           skip: skip.toString(),
           limit: limit.toString(),
@@ -51,6 +51,7 @@ export const api = createApi({
         if (file_type && file_type !== 'all') params.append('file_type', file_type);
         if (sort_by) params.append('sort_by', sort_by);
         if (sort_order) params.append('sort_order', sort_order);
+        if (status) params.append('status', status);
         return `/files/list?${params.toString()}`;
       },
       providesTags: ['Document'],
@@ -93,6 +94,15 @@ export const api = createApi({
       query: (id) => ({
         url: `/files/${id}`,
         method: 'DELETE',
+      }),
+      invalidatesTags: ['Document'],
+    }),
+
+    // Processing queue actions
+    retryDocument: builder.mutation<{ ok: boolean }, string>({
+      query: (id) => ({
+        url: `/files/retry/${id}`,
+        method: 'POST',
       }),
       invalidatesTags: ['Document'],
     }),
@@ -213,4 +223,5 @@ export const {
   useGetAnalyticsStorageQuery,
   useGetAnalyticsTimeseriesQuery,
   useGetProcessingAnalyticsQuery,
+  useRetryDocumentMutation,
 } = api

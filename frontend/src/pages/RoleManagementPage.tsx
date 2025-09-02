@@ -20,12 +20,7 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Alert,
-  CircularProgress
+  Alert
 } from '@mui/material'
 import {
   Edit as EditIcon,
@@ -33,7 +28,7 @@ import {
   PersonAdd as PersonAddIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material'
-import { useGetUsersQuery, useUpdateUserMutation, useDeleteUserMutation } from '../store/api'
+import { useGetUsersQuery } from '../store/api'
 
 interface User {
   id: number
@@ -50,19 +45,14 @@ const RoleManagementPage: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [roleFilter, setRoleFilter] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
-  const [editUser, setEditUser] = useState<User | null>(null)
-  const [deleteUser, setDeleteUser] = useState<User | null>(null)
 
   // API hooks
-  const { data, isLoading, error, refetch } = useGetUsersQuery({
+  const { data, error, refetch } = useGetUsersQuery({
     skip: page * rowsPerPage,
     limit: rowsPerPage
   })
-  const [updateUser] = useUpdateUserMutation()
-  const [deleteUserMutation] = useDeleteUserMutation()
 
   const users = data || []
-  const total = users.length // Note: Backend should return total count
 
   // Filter users based on search and role
   const filteredUsers = users.filter((user: User) => {
@@ -72,42 +62,11 @@ const RoleManagementPage: React.FC = () => {
       user.username.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesRole = !roleFilter || user.role === roleFilter
-
     return matchesSearch && matchesRole
   })
 
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage)
-  }
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10))
-    setPage(0)
-  }
-
-  const handleEditUser = async (updatedUser: Partial<User>) => {
-    if (!editUser) return
-
-    try {
-      await updateUser({ id: editUser.id, ...updatedUser }).unwrap()
-      setEditUser(null)
-      refetch()
-    } catch (error) {
-      console.error('Failed to update user:', error)
-    }
-  }
-
-  const handleDeleteUser = async () => {
-    if (!deleteUser) return
-
-    try {
-      await deleteUserMutation(deleteUser.id).unwrap()
-      setDeleteUser(null)
-      refetch()
-    } catch (error) {
-      console.error('Failed to delete user:', error)
-    }
-  }
+  const handleChangePage = (_event: unknown, newPage: number) => { setPage(newPage) }
+  const handleChangeRowsPerPage = (_event: React.ChangeEvent<HTMLInputElement>) => { setRowsPerPage(25); setPage(0) }
 
   const getRoleColor = (role: string) => {
     const colors: Record<string, "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning"> = {
@@ -120,157 +79,61 @@ const RoleManagementPage: React.FC = () => {
     return colors[role] || 'default'
   }
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase()
-  }
-
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    )
-  }
-
-  if (error) {
-    return (
-      <Box>
-        <Alert severity="error">
-          Failed to load users. Please check your permissions and try again.
-        </Alert>
-      </Box>
-    )
-  }
-
   return (
-    <Box>
-      <Stack direction="row" alignItems="center" justifyContent="between" mb={3}>
-        <Typography variant="h4" gutterBottom>
-          User Management
-        </Typography>
-        <Stack direction="row" spacing={2}>
-          <IconButton onClick={() => refetch()} color="primary">
-            <RefreshIcon />
-          </IconButton>
-          <Button
-            variant="contained"
-            startIcon={<PersonAddIcon />}
-            onClick={() => {/* TODO: Implement add user */ }}
-          >
-            Add User
-          </Button>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant='h4' sx={{ fontWeight: 700 }}>Users</Typography>
+        <Stack direction='row' spacing={1}>
+          <Button variant='outlined' startIcon={<RefreshIcon />} onClick={() => refetch()}>Refresh</Button>
+          <Button variant='contained' startIcon={<PersonAddIcon />}>Invite</Button>
         </Stack>
-      </Stack>
+      </Box>
 
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <TextField
-            label="Search users..."
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ minWidth: 300 }}
-          />
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Role Filter</InputLabel>
-            <Select
-              value={roleFilter}
-              label="Role Filter"
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
-              <MenuItem value="">All Roles</MenuItem>
-              <MenuItem value="Admin">Admin</MenuItem>
-              <MenuItem value="Reviewer">Reviewer</MenuItem>
-              <MenuItem value="Uploader">Uploader</MenuItem>
-              <MenuItem value="Viewer">Viewer</MenuItem>
-              <MenuItem value="Compliance">Compliance</MenuItem>
+      {error && <Alert severity='error' sx={{ mb: 2 }}>Failed to load users</Alert>}
+
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField size='small' placeholder='Search users...' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <FormControl size='small' sx={{ minWidth: 140 }}>
+            <InputLabel>Role</InputLabel>
+            <Select value={roleFilter} label='Role' onChange={(e) => setRoleFilter(e.target.value)}>
+              <MenuItem value=''>All</MenuItem>
+              <MenuItem value='Admin'>Admin</MenuItem>
+              <MenuItem value='Reviewer'>Reviewer</MenuItem>
+              <MenuItem value='Uploader'>Uploader</MenuItem>
+              <MenuItem value='Viewer'>Viewer</MenuItem>
+              <MenuItem value='Compliance'>Compliance</MenuItem>
             </Select>
           </FormControl>
-          <Typography variant="body2" color="text.secondary">
-            {filteredUsers.length} of {users.length} users
-          </Typography>
-        </Stack>
-      </Paper>
+        </Box>
 
-      {/* Users Table */}
-      <Paper>
         <TableContainer>
-          <Table>
+          <Table size='small'>
             <TableHead>
               <TableRow>
                 <TableCell>User</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Role</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Verification</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell align='right'>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user: User) => (
+              {filteredUsers.map((user: User) => (
                 <TableRow key={user.id} hover>
                   <TableCell>
-                    <Stack direction="row" alignItems="center" spacing={2}>
-                      <Avatar sx={{ bgcolor: getRoleColor(user.role) }}>
-                        {getInitials(user.full_name)}
-                      </Avatar>
+                    <Stack direction='row' spacing={1} alignItems='center'>
+                      <Avatar>{user.full_name?.[0] || user.username?.[0]}</Avatar>
                       <Box>
-                        <Typography variant="subtitle2">
-                          {user.full_name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          @{user.username}
-                        </Typography>
+                        <Typography variant='body2' sx={{ fontWeight: 600 }}>{user.full_name || user.username}</Typography>
+                        <Typography variant='caption' color='text.secondary'>#{user.id}</Typography>
                       </Box>
                     </Stack>
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {user.email}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.role}
-                      color={getRoleColor(user.role)}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.is_active ? 'Active' : 'Inactive'}
-                      color={user.is_active ? 'success' : 'default'}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.is_verified ? 'Verified' : 'Pending'}
-                      color={user.is_verified ? 'success' : 'warning'}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={1}>
-                      <IconButton
-                        size="small"
-                        onClick={() => setEditUser(user)}
-                        color="primary"
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => setDeleteUser(user)}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Stack>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell><Chip label={user.role} color={getRoleColor(user.role)} size='small' /></TableCell>
+                  <TableCell align='right'>
+                    <IconButton size='small'><EditIcon /></IconButton>
+                    <IconButton size='small' color='error'><DeleteIcon /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -279,68 +142,14 @@ const RoleManagementPage: React.FC = () => {
         </TableContainer>
 
         <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          component="div"
+          component='div'
           count={filteredUsers.length}
-          rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
-
-      {/* Edit User Dialog */}
-      <Dialog open={!!editUser} onClose={() => setEditUser(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit User</DialogTitle>
-        <DialogContent>
-          {editUser && (
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField
-                label="Full Name"
-                defaultValue={editUser.full_name}
-                fullWidth
-              />
-              <FormControl fullWidth>
-                <InputLabel>Role</InputLabel>
-                <Select defaultValue={editUser.role} label="Role">
-                  <MenuItem value="Admin">Admin</MenuItem>
-                  <MenuItem value="Reviewer">Reviewer</MenuItem>
-                  <MenuItem value="Uploader">Uploader</MenuItem>
-                  <MenuItem value="Viewer">Viewer</MenuItem>
-                  <MenuItem value="Compliance">Compliance</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select defaultValue={editUser.is_active ? 'active' : 'inactive'} label="Status">
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                </Select>
-              </FormControl>
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditUser(null)}>Cancel</Button>
-          <Button onClick={() => handleEditUser({})} variant="contained">Save</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete User Dialog */}
-      <Dialog open={!!deleteUser} onClose={() => setDeleteUser(null)}>
-        <DialogTitle>Delete User</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete {deleteUser?.full_name}? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteUser(null)}>Cancel</Button>
-          <Button onClick={handleDeleteUser} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   )
 }

@@ -14,18 +14,27 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  LinearProgress,
+  Tooltip,
 } from '@mui/material';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
   Person as PersonIcon,
   SmartToy as BotIcon,
-  Psychology as ModelIcon
+  Psychology as ModelIcon,
+  Download as DownloadIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
 import { ollamaService, OllamaModel } from '../services/ollamaService';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeHighlight from 'rehype-highlight';
+import { jsPDF } from 'jspdf';
 
 interface Message {
   id: string;
@@ -55,47 +64,37 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   const [modelsLoading, setModelsLoading] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastAssistantRef = useRef<HTMLDivElement>(null);
   const { sendMessage, lastMessage, readyState } = useWebSocket(
     conversationId ? `/api/v1/chat/ws/chat/${conversationId}` : null
   );
 
-  // Load conversation history
-  useEffect(() => {
-    if (conversationId) {
-      loadConversationHistory();
-    }
-  }, [conversationId]);
+  useEffect(() => { if (conversationId) { loadConversationHistory(); } }, [conversationId]);
 
-  // Handle WebSocket messages
   useEffect(() => {
-    if (lastMessage) {
-      const data = JSON.parse(lastMessage.data);
-
-      switch (data.type) {
-        case 'message':
-          setMessages(prev => [...prev, data.message]);
-          setIsTyping(false);
-          break;
-        case 'typing':
-          setIsTyping(true);
-          break;
-        case 'error':
-          console.error('Chat error:', data.message);
-          setIsTyping(false);
-          break;
-      }
+    if (!lastMessage) return;
+    const data = JSON.parse(lastMessage.data);
+    switch (data.type) {
+      case 'message':
+        setMessages(prev => [...prev, data.message]);
+        setIsTyping(false);
+        break;
+      case 'typing':
+        setIsTyping(true);
+        break;
+      case 'error':
+        console.error('Chat error:', data.message);
+        setIsTyping(false);
+        break;
     }
   }, [lastMessage]);
 
-  // Load available models on component mount
   useEffect(() => {
     const loadModels = async () => {
       setModelsLoading(true);
       try {
         const models = await ollamaService.getAvailableModels();
         setAvailableModels(models);
-
-        // Set default model to first available model
         if (models.length > 0 && !selectedModel) {
           setSelectedModel(models[0].name);
         }
@@ -105,59 +104,40 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
         setModelsLoading(false);
       }
     };
-
     loadModels();
   }, []);
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  useEffect(() => { scrollToBottom(); }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
 
   const loadConversationHistory = async () => {
     try {
       const response = await fetch(`/api/v1/chat/conversations/${conversationId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages || []);
       }
-    } catch (error) {
-      console.error('Failed to load conversation history:', error);
-    }
+    } catch (error) { console.error('Failed to load conversation history:', error); }
   };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
-
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: inputMessage,
       created_at: new Date().toISOString()
     };
-
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
-
     try {
-      if (readyState === WebSocket.OPEN) {
-        // Send via WebSocket for real-time response
-        sendMessage(JSON.stringify({
-          type: 'message',
-          content: inputMessage
-        }));
+      if (readyState === WebSocket.OPEN && conversationId) {
+        sendMessage(JSON.stringify({ type: 'message', content: inputMessage }));
       } else {
-        // Fallback to HTTP API
         const response = await fetch('/api/v1/chat/chat', {
           method: 'POST',
           headers: {
@@ -172,41 +152,62 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
             stream: false
           })
         });
-
         if (response.ok) {
           const data = await response.json();
-
           if (!conversationId && data.conversation_id) {
             setConversationId(data.conversation_id);
             onNewConversation?.(data.conversation_id);
           }
-
           setMessages(prev => [...prev, data.response]);
         }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    } finally { setIsLoading(false); }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
+  };
+
+  const getLastAssistantMarkdown = (): string | null => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i].role === 'assistant') return messages[i].content;
     }
+    return null;
+  };
+
+  const downloadLastAssistantAsMarkdown = () => {
+    const md = getLastAssistantMarkdown();
+    if (!md) return;
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-response-${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadLastAssistantAsPdf = async () => {
+    if (!lastAssistantRef.current) return;
+    const element = lastAssistantRef.current;
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    await pdf.html(element, {
+      margin: 40,
+      autoPaging: 'text',
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      callback: (doc) => doc.save(`chat-response-${Date.now()}.pdf`),
+    });
   };
 
   return (
-    <Paper elevation={3} sx={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
+    <Paper elevation={3} sx={{ height: { xs: '58vh', md: '60vh' }, display: 'flex', flexDirection: 'column', maxWidth: 1100, mx: 'auto', borderRadius: 3 }}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="h6">
-            {documentIds && documentIds.length > 0
-              ? `Chat with ${documentIds.length} document(s)`
-              : 'AI Assistant'}
+            {documentIds && documentIds.length > 0 ? `Chat with ${documentIds.length} document(s)` : 'AI Assistant'}
           </Typography>
           <FormControl size="small" sx={{ minWidth: 250 }}>
             <InputLabel>AI Model</InputLabel>
@@ -223,9 +224,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
                   Loading models...
                 </MenuItem>
               ) : availableModels.length === 0 ? (
-                <MenuItem disabled>
-                  No models available
-                </MenuItem>
+                <MenuItem disabled> No models available </MenuItem>
               ) : (
                 availableModels.map((model) => (
                   <MenuItem key={model.name} value={model.name}>
@@ -244,44 +243,47 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
           </FormControl>
         </Box>
         {documentIds && documentIds.length > 0 && (
-          <Chip
-            icon={<AttachFileIcon />}
-            label={`${documentIds.length} document(s) attached`}
-            size="small"
-            color="primary"
-          />
+          <Chip icon={<AttachFileIcon />} label={`${documentIds.length} document(s) attached`} size="small" color="primary" />
         )}
+        {/* Connection indicator (subtle) + progress */}
+        <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
+          {(() => {
+            let color: string = 'warning.main'
+            let label: string = 'HTTP fallback'
+            // If no conversation yet, we haven't opened WS; treat as ready via HTTP
+            if (!conversationId) { color = 'info.main'; label = 'Ready' }
+            else if (readyState === WebSocket.OPEN) { color = 'success.main'; label = 'Realtime' }
+            else if (readyState === WebSocket.CONNECTING) { color = 'info.main'; label = 'Connecting…' }
+            else if (readyState === WebSocket.CLOSING || readyState === WebSocket.CLOSED) { color = 'error.main'; label = 'Offline' }
+            return (
+              <Tooltip title={label}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box aria-label={`connection-${label}`} sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color, '@keyframes pulse': { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.25)' }, '100%': { transform: 'scale(1)' } }, animation: (!conversationId || readyState === WebSocket.OPEN) ? 'none' : 'pulse 1.6s ease-in-out infinite' }} />
+                  <Typography variant="caption" sx={{ color, fontWeight: 600, opacity: 0.9 }}>{label}</Typography>
+                </Box>
+              </Tooltip>
+            )
+          })()}
+          {(isLoading || isTyping) && (
+            <LinearProgress sx={{ flex: 1, height: 6, borderRadius: 3, '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, #6366F1, #22C55E, #06B6D4, #F59E0B)' } }} />
+          )}
+        </Box>
       </Box>
 
       {/* Messages */}
       <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
         <List>
           {messages.map((message) => (
-            <ListItem
-              key={message.id}
-              sx={{
-                flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
-                gap: 1
-              }}
-            >
-              <Avatar sx={{
-                bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main'
-              }}>
+            <ListItem key={message.id} sx={{ flexDirection: message.role === 'user' ? 'row-reverse' : 'row', gap: 1, alignItems: 'flex-start' }}>
+              <Avatar sx={{ bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main' }}>
                 {message.role === 'user' ? <PersonIcon /> : <BotIcon />}
               </Avatar>
-
-              <Paper
-                elevation={1}
-                sx={{
-                  p: 2,
-                  maxWidth: '70%',
-                  bgcolor: message.role === 'user' ? 'primary.light' : 'grey.100',
-                  color: message.role === 'user' ? 'primary.contrastText' : 'text.primary'
-                }}
-              >
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {message.content}
-                </Typography>
+              <Paper elevation={1} sx={{ p: 2, maxWidth: '78%', bgcolor: message.role === 'user' ? 'primary.light' : 'background.paper', color: message.role === 'user' ? 'primary.contrastText' : 'text.primary', border: message.role === 'assistant' ? 1 : 0, borderColor: 'divider', borderRadius: 2 }}>
+                <Box sx={{ '& table': { width: '100%', borderCollapse: 'collapse', my: 1 }, '& th, & td': { border: '1px solid', borderColor: 'divider', p: 1, verticalAlign: 'top' }, '& pre': { p: 1.5, overflowX: 'auto', bgcolor: 'background.default', borderRadius: 1, border: 1, borderColor: 'divider' }, '& code': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' } }} ref={message.role === 'assistant' ? lastAssistantRef : undefined}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw as any, rehypeHighlight as any]}>
+                    {message.content}
+                  </ReactMarkdown>
+                </Box>
                 <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.7 }}>
                   {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                 </Typography>
@@ -291,14 +293,10 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
 
           {isTyping && (
             <ListItem>
-              <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                <BotIcon />
-              </Avatar>
+              <Avatar sx={{ bgcolor: 'secondary.main' }}><BotIcon /></Avatar>
               <Box sx={{ ml: 1 }}>
                 <CircularProgress size={20} />
-                <Typography variant="body2" sx={{ ml: 1, display: 'inline' }}>
-                  Typing...
-                </Typography>
+                <Typography variant="body2" sx={{ ml: 1, display: 'inline' }}>Typing...</Typography>
               </Box>
             </ListItem>
           )}
@@ -309,24 +307,13 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       <Divider />
 
       {/* Input */}
-      <Box sx={{ p: 2, display: 'flex', gap: 1 }}>
-        <TextField
-          fullWidth
-          multiline
-          maxRows={4}
-          placeholder="Type your message..."
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          disabled={isLoading}
-        />
-        <IconButton
-          color="primary"
-          onClick={handleSendMessage}
-          disabled={isLoading || !inputMessage.trim()}
-        >
+      <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
+        <TextField fullWidth multiline maxRows={4} placeholder="Type your message..." value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} onKeyPress={handleKeyPress} disabled={isLoading} />
+        <IconButton color="primary" onClick={handleSendMessage} disabled={isLoading || !inputMessage.trim()}>
           <SendIcon />
         </IconButton>
+        <Tooltip title="Download last answer as Markdown"><IconButton onClick={downloadLastAssistantAsMarkdown}><DownloadIcon /></IconButton></Tooltip>
+        <Tooltip title="Download last answer as PDF"><IconButton onClick={downloadLastAssistantAsPdf}><PdfIcon /></IconButton></Tooltip>
       </Box>
     </Paper>
   );

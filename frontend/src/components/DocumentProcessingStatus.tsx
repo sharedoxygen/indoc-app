@@ -193,7 +193,7 @@ const DocumentProcessingItem: React.FC<{
                         )}
 
                         <List dense>
-                            {document.stages.map((stage, index) => (
+                            {document.stages.map((stage) => (
                                 <ListItem
                                     key={stage.id}
                                     sx={{

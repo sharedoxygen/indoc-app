@@ -16,6 +16,18 @@ const DashboardPage: React.FC = () => {
   const searches = useMemo(() => (timeseries?.searches || []).map((d: any) => ({ day: d.day, searches: d.count })), [timeseries])
   const storageByType = useMemo(() => (storage?.by_type || []).map((r: any) => ({ name: (r.file_type || 'UNK').toUpperCase(), value: r.bytes })), [storage])
 
+  // Derived queue KPIs (live, no hard-coding)
+  const statusCounts = processing?.status_counts || {}
+  const inQueueNow = (statusCounts['uploaded'] || 0) + (statusCounts['processing'] || 0) + (statusCounts['text_extracted'] || 0)
+  const processingNow = statusCounts['processing'] || 0
+  const failedNow = statusCounts['failed'] || 0
+  const avgProcessSecs = useMemo(() => {
+    const rows = processing?.avg_time_to_process_by_type || []
+    if (!rows.length) return 0
+    const total = rows.reduce((acc: number, r: any) => acc + (Number(r.avg_seconds) || 0), 0)
+    return total / rows.length
+  }, [processing])
+
   const formatSeconds = (totalSeconds: number) => {
     if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '0:00'
     const minutes = Math.floor(totalSeconds / 60)
@@ -129,6 +141,34 @@ const DashboardPage: React.FC = () => {
                 <Line type="monotone" dataKey="secs" stroke="#EF4444" dot />
               </LineChart>
             </ResponsiveContainer>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Additional live KPIs */}
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        <Grid item xs={12} md={3}>
+          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'secondary.main', color: 'secondary.contrastText', transition: 'transform .12s ease, box-shadow .12s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: 6 } }}>
+            <Typography variant="overline">In Queue Now</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800 }}>{inQueueNow}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'info.main', color: 'info.contrastText', transition: 'transform .12s ease, box-shadow .12s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: 6 } }}>
+            <Typography variant="overline">Processing Now</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800 }}>{processingNow}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'error.main', color: 'error.contrastText', transition: 'transform .12s ease, box-shadow .12s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: 6 } }}>
+            <Typography variant="overline">Failed (Now)</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800 }}>{failedNow}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Paper sx={{ p: 2, borderRadius: 3, bgcolor: 'secondary.dark', color: 'secondary.contrastText', transition: 'transform .12s ease, box-shadow .12s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: 6 } }}>
+            <Typography variant="overline">Avg Proc Time</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800 }}>{formatSeconds(Number(avgProcessSecs) || 0)}</Typography>
           </Paper>
         </Grid>
       </Grid>

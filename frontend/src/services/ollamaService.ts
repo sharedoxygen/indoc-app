@@ -26,19 +26,34 @@ export class OllamaService {
     this.baseUrl = 'http://localhost:11434';
   }
 
+  private parseParameterSize(param: string | undefined): number {
+    if (!param) return Number.MAX_SAFE_INTEGER;
+    const match = String(param).trim().match(/(\d+(?:\.\d+)?)([kKmMbB])?/);
+    if (!match) return Number.MAX_SAFE_INTEGER;
+    const value = parseFloat(match[1]);
+    const unit = (match[2] || 'B').toUpperCase();
+    // Treat parameter_size like tokens count B=Billions, M=Millions, K=Thousands
+    const multipliers: Record<string, number> = { K: 1e3, M: 1e6, B: 1e9 };
+    const factor = multipliers[unit] ?? 1;
+    return value * factor;
+  }
+
   async getAvailableModels(): Promise<OllamaModel[]> {
     try {
       const response = await fetch(`${this.baseUrl}/api/tags`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       const data: OllamaModelsResponse = await response.json();
-      
-      // Filter out embedding models and return only chat models
-      return data.models.filter(model => 
-        !model.name.includes('embed') && 
+
+      const chatModels = data.models.filter(model =>
+        !model.name.includes('embed') &&
         !model.name.includes('embedding')
+      );
+
+      // Sort by parameter_size ascending (smallest first)
+      return chatModels.sort((a, b) =>
+        this.parseParameterSize(a.details?.parameter_size) - this.parseParameterSize(b.details?.parameter_size)
       );
     } catch (error) {
       console.error('Failed to fetch Ollama models:', error);
@@ -68,23 +83,14 @@ export class OllamaService {
 
   getModelDescription(model: OllamaModel): string {
     const { parameter_size, family } = model.details;
-    
-    // Generate description based on model characteristics
-    if (model.name.includes('deepseek')) {
-      return `DeepSeek model (${parameter_size}) - Advanced reasoning and coding`;
-    } else if (model.name.includes('gpt-oss')) {
-      return `GPT-OSS model (${parameter_size}) - General purpose language model`;
-    } else if (model.name.includes('qwen')) {
-      return `Qwen model (${parameter_size}) - Multilingual and vision capabilities`;
-    } else if (model.name.includes('gemma')) {
-      return `Google Gemma model (${parameter_size}) - Efficient and capable`;
-    } else if (model.name.includes('kimi')) {
-      return `Kimi model (${parameter_size}) - Long context understanding`;
-    } else {
-      return `${family} model (${parameter_size}) - Language model`;
-    }
+    const sizeText = parameter_size ? ` (${parameter_size})` : '';
+    if (model.name.includes('deepseek')) return `DeepSeek model${sizeText} - Advanced reasoning and coding`;
+    if (model.name.includes('gpt-oss')) return `GPT-OSS model${sizeText} - General purpose language model`;
+    if (model.name.includes('qwen')) return `Qwen model${sizeText} - Multilingual and vision capabilities`;
+    if (model.name.includes('gemma')) return `Google Gemma model${sizeText} - Efficient and capable`;
+    if (model.name.includes('kimi')) return `Kimi model${sizeText} - Long context understanding`;
+    return `${family} model${sizeText} - Language model`;
   }
 }
-
 export const ollamaService = new OllamaService();
 

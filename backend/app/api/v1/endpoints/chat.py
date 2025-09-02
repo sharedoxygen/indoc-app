@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from jose import JWTError, jwt
+from app.core.config import settings
 import json
 import asyncio
 import logging
@@ -231,8 +233,33 @@ async def websocket_chat(
             await manager.disconnect(websocket, str(conversation_id))
             return
         
-        # Get user from token (implement proper JWT validation)
-        # current_user = await get_user_from_token(token, db)
+        # Get user from token (validate JWT similar to deps.get_current_user)
+        try:
+            payload = jwt.decode(
+                token,
+                settings.JWT_SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM]
+            )
+            user_id_str = payload.get("sub")
+            if user_id_str is None:
+                raise JWTError("Missing subject")
+            user_id = int(user_id_str)
+        except (JWTError, ValueError):
+            await websocket.send_text(json.dumps({
+                "type": "error",
+                "message": "Authentication failed"
+            }))
+            await manager.disconnect(websocket, str(conversation_id))
+            return
+        result = await db.execute(select(User).where(User.id == user_id))
+        current_user = result.scalar_one_or_none()
+        if not current_user:
+            await websocket.send_text(json.dumps({
+                "type": "error",
+                "message": "User not found"
+            }))
+            await manager.disconnect(websocket, str(conversation_id))
+            return
         
         # Send connection confirmation
         await websocket.send_text(json.dumps({
