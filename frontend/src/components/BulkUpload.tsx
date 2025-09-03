@@ -46,9 +46,9 @@ export const BulkUpload: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [showResults, setShowResults] = useState(true);
-  const [preserveStructure, setPreserveStructure] = useState(true);
-  
-  const { sendMessage, lastMessage, readyState } = useWebSocket(
+  const [preserveStructure] = useState(true);
+
+  const { lastMessage } = useWebSocket(
     isUploading ? '/api/v1/files/ws/upload' : null
   );
 
@@ -56,7 +56,7 @@ export const BulkUpload: React.FC = () => {
   React.useEffect(() => {
     if (lastMessage) {
       const data = JSON.parse(lastMessage.data);
-      
+
       if (data.type === 'upload_progress') {
         setUploadProgress({
           message: data.message,
@@ -278,8 +278,8 @@ export const BulkUpload: React.FC = () => {
             <Collapse in={showResults}>
               <Alert severity="info" sx={{ mb: 2 }}>
                 <Typography variant="body2">
-                  Successfully uploaded: {uploadResults.filter(f => f.status === 'success').length} | 
-                  Duplicates: {uploadResults.filter(f => f.status === 'duplicate').length} | 
+                  Successfully uploaded: {uploadResults.filter(f => f.status === 'success').length} |
+                  Duplicates: {uploadResults.filter(f => f.status === 'duplicate').length} |
                   Failed: {uploadResults.filter(f => f.status === 'failed').length}
                 </Typography>
               </Alert>

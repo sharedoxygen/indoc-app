@@ -17,21 +17,29 @@ import {
   Menu,
   MenuItem,
   Badge,
+  Tooltip,
+  Switch,
+  FormControlLabel,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
+  Description as DocumentIcon,
   CloudUpload as UploadIcon,
-  Search as SearchIcon,
+  Chat as ChatIcon,
   People as PeopleIcon,
   Settings as SettingsIcon,
   History as HistoryIcon,
   Notifications as NotificationsIcon,
-  AccountCircle as AccountIcon,
   Logout as LogoutIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
+  HourglassTop as HourglassTopIcon,
 } from '@mui/icons-material'
 import { useAppSelector, useAppDispatch } from '../hooks/redux'
 import { logout } from '../store/slices/authSlice'
+import { useThemeMode } from '../contexts/ThemeContext'
+import Logo from '../components/Logo'
 
 const drawerWidth = 240
 
@@ -40,6 +48,7 @@ const MainLayout: React.FC = () => {
   const location = useLocation()
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
+  const { mode, toggleColorMode } = useThemeMode()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
@@ -62,10 +71,12 @@ const MainLayout: React.FC = () => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['all'] },
+    { text: 'Chat', icon: <ChatIcon />, path: '/chat', roles: ['all'] },
+    { text: 'Documents', icon: <DocumentIcon />, path: '/documents', roles: ['all'] },
     { text: 'Upload', icon: <UploadIcon />, path: '/upload', roles: ['Admin', 'Uploader', 'Reviewer'] },
-    { text: 'Search', icon: <SearchIcon />, path: '/search', roles: ['all'] },
-    { text: 'Audit Trail', icon: <HistoryIcon />, path: '/audit', roles: ['Admin', 'Compliance'] },
+    { text: 'Processing Queue', icon: <HourglassTopIcon />, path: '/processing-queue', roles: ['all'] },
     { text: 'Users', icon: <PeopleIcon />, path: '/users', roles: ['Admin'] },
+    { text: 'Audit Trail', icon: <HistoryIcon />, path: '/audit', roles: ['Admin', 'Compliance'] },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings', roles: ['Admin'] },
   ]
 
@@ -74,27 +85,64 @@ const MainLayout: React.FC = () => {
   )
 
   const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
-          inDoc
-        </Typography>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Toolbar sx={{ px: 2 }}>
+        <Logo size="medium" />
       </Toolbar>
       <Divider />
-      <List>
+      <List sx={{ flexGrow: 1, px: 1 }}>
         {filteredMenuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => navigate(item.path)}
+              sx={{
+                borderRadius: 2,
+                mb: 0.5,
+                '&.Mui-selected': {
+                  backgroundColor: 'primary.50',
+                  color: 'primary.600',
+                  '& .MuiListItemIcon-root': {
+                    color: 'primary.600',
+                  },
+                },
+              }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontWeight: location.pathname === item.path ? 600 : 500,
+                  fontSize: '0.875rem'
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-    </div>
+
+      {/* Dark mode toggle in sidebar */}
+      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={mode === 'dark'}
+              onChange={toggleColorMode}
+              size="small"
+            />
+          }
+          label={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {mode === 'dark' ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />}
+              <Typography variant="body2">
+                {mode === 'dark' ? 'Dark' : 'Light'} Mode
+              </Typography>
+            </Box>
+          }
+          sx={{ margin: 0 }}
+        />
+      </Box>
+    </Box>
   )
 
   return (
@@ -116,16 +164,25 @@ const MainLayout: React.FC = () => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {filteredMenuItems.find((item) => item.path === location.pathname)?.text || 'inDoc'}
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+            {filteredMenuItems.find((item) => item.path === location.pathname)?.text || 'Dashboard'}
           </Typography>
-          
-          <IconButton color="inherit">
-            <Badge badgeContent={0} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
-          
+
+          {/* Dark mode toggle in header (for desktop) */}
+          <Tooltip title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}>
+            <IconButton onClick={toggleColorMode} color="inherit" sx={{ mr: 1 }}>
+              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Notifications">
+            <IconButton color="inherit">
+              <Badge badgeContent={0} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+
           <IconButton
             onClick={handleProfileMenuOpen}
             color="inherit"
@@ -135,7 +192,7 @@ const MainLayout: React.FC = () => {
               {user?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
             </Avatar>
           </IconButton>
-          
+
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
@@ -159,7 +216,7 @@ const MainLayout: React.FC = () => {
           </Menu>
         </Toolbar>
       </AppBar>
-      
+
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
@@ -170,6 +227,9 @@ const MainLayout: React.FC = () => {
           onClose={handleDrawerToggle}
           ModalProps={{
             keepMounted: true,
+            disableAutoFocus: true,
+            disableEnforceFocus: true,
+            disableRestoreFocus: true,
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
@@ -189,7 +249,7 @@ const MainLayout: React.FC = () => {
           {drawer}
         </Drawer>
       </Box>
-      
+
       <Box
         component="main"
         sx={{
@@ -201,6 +261,8 @@ const MainLayout: React.FC = () => {
       >
         <Outlet />
       </Box>
+
+
     </Box>
   )
 }

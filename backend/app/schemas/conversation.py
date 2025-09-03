@@ -22,11 +22,14 @@ class MessageCreate(MessageBase):
     pass
 
 
-class MessageResponse(MessageBase):
+class MessageResponse(BaseModel):
     """Schema for message response"""
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     conversation_id: UUID
+    role: RoleStr
+    content: str
+    metadata: Dict[str, Any] = Field(default_factory=dict, alias="message_metadata")
     created_at: datetime
 
 
@@ -71,7 +74,8 @@ class ChatRequest(BaseModel):
     """Schema for chat request"""
     message: str
     conversation_id: Optional[UUID] = None
-    document_id: Optional[UUID] = None
+    document_ids: Optional[List[UUID]] = None
+    model: Optional[str] = None
     stream: bool = False
 
 

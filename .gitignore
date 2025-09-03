@@ -32,9 +32,26 @@ env/
 .venv
 
 # Environment files
+.env
 .env.local
+.env.*
+*.env
 *.env.backup
-.env.*.local
+*.env.local
+
+# Allow .env.example for documentation
+!.env.example
+
+# Keys and secrets
+keys/
+*.key
+*.pem
+*.p12
+*.pfx
+*.secret
+*secret*
+*credentials*
+CREDENTIALS.md
 
 # IDE
 .vscode/
@@ -96,3 +113,15 @@ monitoring/prometheus_data/
 monitoring/grafana_data/
 prometheus_data/
 grafana_data/
+
+# Local configuration (not committed)
+config/local.yaml
+config/*.local.yaml
+config/secrets.*
+
+# Runtime artifacts
+celerybeat-schedule*
+celerybeat-schedule.db
+tmp/*.log
+tmp/*.pid
+tmp/*.out

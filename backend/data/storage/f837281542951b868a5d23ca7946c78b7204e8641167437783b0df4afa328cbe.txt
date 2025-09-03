@@ -1,0 +1,67 @@
+FINAL VERSION
+
+GRADUATE THESIS
+{thesis_title}
+
+SUBMITTED BY: Katie Booth
+STUDENT ID: {student_id}
+DEGREE PROGRAM: {degree_program}
+ADVISOR: {advisor_name}
+SUBMISSION DATE: February 15, 2025
+
+ABSTRACT
+{thesis_abstract}
+
+This thesis presents {research_contribution} through {research_methodology}. Key findings include {key_findings}.
+
+TABLE OF CONTENTS
+Chapter 1: Introduction
+Chapter 2: Literature Review
+Chapter 3: Methodology
+Chapter 4: Results and Analysis
+Chapter 5: Discussion and Conclusions
+
+CHAPTER 1: INTRODUCTION
+
+1.1 Background
+{introduction_background}
+
+1.2 Problem Statement
+{problem_statement}
+
+1.3 Research Questions
+Primary Research Question: {primary_question}
+Secondary Questions:
+• {secondary_q1}
+• {secondary_q2}
+
+1.4 Significance of Study
+{study_significance}
+
+CHAPTER 2: LITERATURE REVIEW
+{literature_review_summary}
+
+CHAPTER 3: METHODOLOGY
+Research Design: {research_design}
+Population: {target_population}
+Sample Size: {sample_size}
+Data Collection: {data_collection}
+Analysis: {analysis_method}
+
+CHAPTER 4: RESULTS
+{results_summary}
+
+Statistical analysis revealed {statistical_findings}. The correlation between {variable_1} and {variable_2} was {correlation_strength}.
+
+CHAPTER 5: CONCLUSIONS
+{conclusions_summary}
+
+Future research should explore {future_research_directions}.
+
+REFERENCES
+{reference_count} scholarly sources cited following APA format.
+
+Committee Approval:
+Advisor: _________________ Date: _______
+Committee Member: ________ Date: _______
+Committee Member: ________ Date: _______

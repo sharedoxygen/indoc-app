@@ -1,0 +1,52 @@
+DRAFT - For Review
+
+PROPERTY MANAGEMENT AGREEMENT
+
+OWNER: {owner_name}
+PROPERTY MANAGER: Fleming, Jones and Kerr
+PROPERTY: 20880 Hayes Center
+Johnsonfurt, ID 14656
+
+MANAGEMENT SERVICES
+
+Tenant Relations
+• Tenant screening and selection
+• Lease preparation and execution
+• Rent collection and deposit handling
+• Tenant communication and issue resolution
+• Eviction proceedings if necessary
+
+Property Maintenance
+• Routine maintenance coordination
+• Emergency repair response (24/7)
+• Vendor management and oversight
+• Property inspections (monthly)
+• Preventive maintenance scheduling
+
+Financial Management
+• Monthly financial statements
+• Rent collection and late fee assessment
+• Security deposit management
+• Tax document preparation (1099s)
+• Annual budget preparation
+
+COMPENSATION
+Management Fee: {management_fee_percent}% of gross monthly rent
+Leasing Fee: {leasing_fee_percent}% of first month's rent
+Maintenance Markup: {maintenance_markup}% on repairs over ${markup_threshold}
+
+TERMS
+• Agreement Term: {term_length} years
+• Automatic renewal unless 60-day notice given
+• Either party may terminate with 30-day notice
+• Owner reserves right to approve expenses over ${approval_threshold:,}
+
+INSURANCE AND LIABILITY
+• Property manager maintains E&O insurance
+• Owner maintains property insurance
+• Both parties maintain general liability coverage
+
+This agreement governed by laws of West Virginia.
+
+Owner Signature: _________________ Date: _______
+Manager Signature: _______________ Date: _______

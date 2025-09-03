@@ -11,6 +11,7 @@ from jose import JWTError, jwt
 from app.db.session import AsyncSessionLocal
 from app.core.config import settings
 from app.models.user import User
+from app.core.security import require_admin, require_uploader, require_viewer, require_reviewer, require_compliance
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/login")
 
@@ -49,10 +50,12 @@ async def get_current_user(
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM]
         )
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
             raise credentials_exception
-    except JWTError:
+        # Convert string ID to integer for database query
+        user_id = int(user_id_str)
+    except (JWTError, ValueError):
         raise credentials_exception
     
     # Get user from database

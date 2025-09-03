@@ -1,0 +1,63 @@
+HIPAA PRIVACY POLICY
+Healthcare Information Privacy and Security
+
+EFFECTIVE DATE: October 24, 2024
+VERSION: 3.5
+
+POLICY STATEMENT
+This policy establishes procedures for protecting patient health information (PHI) in compliance with the Health Insurance Portability and Accountability Act (HIPAA).
+
+SCOPE
+This policy applies to all workforce members, business associates, and third parties who have access to PHI.
+
+DEFINITIONS
+• PHI: Individually identifiable health information
+• Covered Entity: Healthcare providers, health plans, healthcare clearinghouses
+• Business Associate: Third parties that handle PHI on behalf of covered entities
+
+PRIVACY REQUIREMENTS
+
+Minimum Necessary Standard
+• Access to PHI limited to minimum necessary for job function
+• Regular review of access permissions
+• Role-based access controls implemented
+
+Patient Rights
+• Right to access their own health records
+• Right to request amendments to their records
+• Right to an accounting of disclosures
+• Right to request restrictions on use/disclosure
+
+SECURITY SAFEGUARDS
+
+Administrative Safeguards
+• Security officer designated
+• Workforce training on HIPAA requirements
+• Access management procedures
+• Incident response procedures
+
+Physical Safeguards
+• Facility access controls
+• Workstation use restrictions
+• Device and media controls
+• Secure disposal of PHI
+
+Technical Safeguards
+• Access control (unique user identification)
+• Audit controls and monitoring
+• Integrity controls
+• Transmission security (encryption)
+
+BREACH NOTIFICATION
+• Risk assessment within 24 hours
+• Patient notification within 60 days
+• HHS notification within 60 days
+• Media notification if breach affects 500+ individuals
+
+VIOLATIONS AND PENALTIES
+Violations may result in:
+• Civil penalties up to $1.5 million per incident
+• Criminal penalties up to $250,000 and 10 years imprisonment
+• Immediate termination of employment
+
+Contact: Privacy Officer at privacy@techsolutions.io

@@ -1,0 +1,23 @@
+SOFTWARE LICENSE AGREEMENT
+
+This Software License Agreement ("Agreement") is entered into as of November 05, 2024 between Poole, Taylor and Salinas ("Licensor") and the end user ("Licensee").
+
+1. GRANT OF LICENSE
+Subject to the terms and conditions of this Agreement, Licensor hereby grants to Licensee a non-exclusive, non-transferable license to use the software.
+
+2. RESTRICTIONS
+Licensee shall not:
+- Reverse engineer, decompile, or disassemble the software
+- Distribute, sublicense, or transfer the software
+- Remove or modify any proprietary notices
+
+3. TERM AND TERMINATION
+This Agreement shall remain in effect until terminated. Either party may terminate this Agreement at any time with written notice.
+
+4. LIMITATION OF LIABILITY
+IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES.
+
+5. GOVERNING LAW
+This Agreement shall be governed by the laws of Colorado.
+
+By using this software, you acknowledge that you have read and understood this Agreement.

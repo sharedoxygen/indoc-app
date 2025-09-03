@@ -1,0 +1,54 @@
+COURSE SYLLABUS
+Research Methods in Psychology
+BUS543 | 4 Credit Hours
+
+INSTRUCTOR: Dr. Olivia Yang
+OFFICE: Room 335
+EMAIL: zachary.williams@university.edu
+OFFICE HOURS: Tuesday/Thursday 2:00-4:00 PM
+
+COURSE DESCRIPTION
+{course_description}
+
+This course examines {course_focus} through {teaching_method}. Students will develop {learning_outcomes}.
+
+LEARNING OBJECTIVES
+Upon completion of this course, students will be able to:
+1. {objective_1}
+2. {objective_2}
+3. {objective_3}
+4. {objective_4}
+
+REQUIRED MATERIALS
+• Textbook: {textbook_title}
+• Course packet available at bookstore
+• Access to online learning platform
+• Calculator (scientific)
+
+COURSE SCHEDULE
+Week 1-4: {module_1}
+Week 5-8: {module_2}
+Week 9-12: {module_3}
+Week 13-16: {module_4}
+
+ASSESSMENT
+Participation: {participation_percent}%
+Assignments: {assignments_percent}%
+Midterm Exam: {midterm_percent}%
+Final Project: {final_percent}%
+
+GRADING SCALE
+A: 90-100%    B: 80-89%    C: 70-79%    D: 60-69%    F: Below 60%
+
+POLICIES
+Attendance: Regular attendance expected
+Late Work: 10% penalty per day late
+Academic Integrity: Plagiarism will result in course failure
+Accommodations: Students with disabilities should contact Disability Services
+
+IMPORTANT DATES
+Midterm Exam: {midterm_date}
+Final Project Due: {final_due_date}
+Final Exam: {final_exam_date}
+
+Questions? Email zachary.williams@university.edu or visit during office hours.

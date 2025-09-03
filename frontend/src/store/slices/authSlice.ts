@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios'
 
 interface User {
@@ -124,6 +124,7 @@ const authSlice = createSlice({
         state.isLoading = false
         state.isAuthenticated = true
         state.user = action.payload
+        state.token = localStorage.getItem('token') // Ensure token is synced
         state.error = null
       })
       .addCase(checkAuth.rejected, (state) => {

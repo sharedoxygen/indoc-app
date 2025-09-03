@@ -1,0 +1,33 @@
+FINAL VERSION
+
+CONFIDENTIALITY AND NON-DISCLOSURE AGREEMENT
+
+This Confidentiality Agreement ("Agreement") is entered into between Allen, Wallace and Robertson and Douglas Johnson.
+
+1. CONFIDENTIAL INFORMATION
+"Confidential Information" includes all non-public information disclosed by the Company, including:
+- Technical data, trade secrets, know-how
+- Business plans, financial information, customer lists
+- Marketing strategies, product development plans
+- Any information marked as confidential
+
+2. OBLIGATIONS
+Employee agrees to:
+- Hold all Confidential Information in strict confidence
+- Not disclose Confidential Information to third parties
+- Use Confidential Information solely for Company business
+- Return all materials containing Confidential Information upon termination
+
+3. EXCEPTIONS
+This Agreement does not apply to information that:
+- Is publicly available through no breach of this Agreement
+- Was known to Employee prior to disclosure
+- Is independently developed without use of Confidential Information
+
+4. REMEDIES
+Employee acknowledges that breach of this Agreement may cause irreparable harm, and Company may seek injunctive relief.
+
+5. TERM
+This Agreement shall survive termination of employment and remain in effect indefinitely.
+
+Employee Signature: ___________________ Date: ___________

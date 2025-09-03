@@ -41,21 +41,46 @@ export const api = createApi({
     }),
 
     // Document endpoints
-    getDocuments: builder.query({
-      query: ({ skip = 0, limit = 100 }) => `/files?skip=${skip}&limit=${limit}`,
+    getDocuments: builder.query<any, { skip?: number; limit?: number; search?: string; file_type?: string; sort_by?: string; sort_order?: string; status?: string } | void>({
+      query: ({ skip = 0, limit = 10, search, file_type, sort_by, sort_order, status } = {}) => {
+        const params = new URLSearchParams({
+          skip: skip.toString(),
+          limit: limit.toString(),
+        });
+        if (search) params.append('search', search);
+        if (file_type && file_type !== 'all') params.append('file_type', file_type);
+        if (sort_by) params.append('sort_by', sort_by);
+        if (sort_order) params.append('sort_order', sort_order);
+        if (status) params.append('status', status);
+        return `/files/list?${params.toString()}`;
+      },
       providesTags: ['Document'],
     }),
     getDocument: builder.query({
       query: (id) => `/files/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Document', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Document', id }],
     }),
     uploadDocument: builder.mutation({
       query: (formData) => ({
-        url: '/files',
+        url: '/files/upload',
         method: 'POST',
         body: formData,
       }),
       invalidatesTags: ['Document'],
+    }),
+
+    // Analytics endpoints
+    getAnalyticsSummary: builder.query<any, void>({
+      query: () => `/analytics/summary`,
+    }),
+    getAnalyticsStorage: builder.query<any, void>({
+      query: () => `/analytics/storage`,
+    }),
+    getAnalyticsTimeseries: builder.query<any, { days?: number }>({
+      query: ({ days = 30 } = {}) => `/analytics/timeseries?days=${days}`,
+    }),
+    getProcessingAnalytics: builder.query<any, void>({
+      query: () => `/analytics/processing`,
     }),
     updateDocument: builder.mutation({
       query: ({ id, ...data }) => ({
@@ -63,12 +88,21 @@ export const api = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Document', id }],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Document', id }],
     }),
     deleteDocument: builder.mutation({
       query: (id) => ({
         url: `/files/${id}`,
         method: 'DELETE',
+      }),
+      invalidatesTags: ['Document'],
+    }),
+
+    // Processing queue actions
+    retryDocument: builder.mutation<{ ok: boolean }, string>({
+      query: (id) => ({
+        url: `/files/retry/${id}`,
+        method: 'POST',
       }),
       invalidatesTags: ['Document'],
     }),
@@ -84,6 +118,8 @@ export const api = createApi({
     findSimilarDocuments: builder.query({
       query: ({ id, limit = 5 }) => `/search/documents/${id}/similar?limit=${limit}`,
     }),
+
+
 
     // User management endpoints
     getUsers: builder.query({
@@ -116,36 +152,46 @@ export const api = createApi({
     }),
     exportAuditLogs: builder.mutation({
       query: (params) => ({
-        url: '/audit/export',
+        url: '/audit/logs/export',
         method: 'POST',
-        body: params,
+        params,
       }),
     }),
 
-    // Settings endpoints
+    // Settings endpoints (align with backend)
     getSettings: builder.query({
-      query: (key) => `/settings/${key}`,
-      providesTags: (result, error, key) => [{ type: 'Settings', id: key }],
+      query: () => `/settings`,
+      providesTags: () => [{ type: 'Settings', id: 'base' }],
     }),
-    updateSettings: builder.mutation({
-      query: ({ key, value }) => ({
-        url: `/settings/${key}`,
+    getAdminSettings: builder.query({
+      query: () => `/settings/admin`,
+      providesTags: () => [{ type: 'Settings', id: 'admin' }],
+    }),
+    updateAdminSettings: builder.mutation({
+      query: (settingsUpdate) => ({
+        url: `/settings/admin`,
         method: 'PUT',
-        body: { value },
+        body: settingsUpdate,
       }),
-      invalidatesTags: (result, error, { key }) => [{ type: 'Settings', id: key }],
+      invalidatesTags: () => [{ type: 'Settings', id: 'admin' }],
+    }),
+    getFeatureFlags: builder.query({
+      query: () => `/settings/features`,
+    }),
+    getDependenciesHealth: builder.query({
+      query: () => `/settings/health/dependencies`,
     }),
 
-    // MCP endpoints
+    // MCP endpoints (align with backend)
     executeTool: builder.mutation({
-      query: (toolRequest) => ({
-        url: '/mcp/tools/execute',
+      query: (command) => ({
+        url: '/mcp/execute',
         method: 'POST',
-        body: toolRequest,
+        body: command,
       }),
     }),
-    getToolMetrics: builder.query({
-      query: () => '/mcp/metrics',
+    getMcpStatus: builder.query({
+      query: () => '/mcp/status',
     }),
   }),
 })
@@ -167,7 +213,15 @@ export const {
   useGetAuditLogsQuery,
   useExportAuditLogsMutation,
   useGetSettingsQuery,
-  useUpdateSettingsMutation,
+  useGetAdminSettingsQuery,
+  useUpdateAdminSettingsMutation,
+  useGetFeatureFlagsQuery,
+  useGetDependenciesHealthQuery,
   useExecuteToolMutation,
-  useGetToolMetricsQuery,
+  useGetMcpStatusQuery,
+  useGetAnalyticsSummaryQuery,
+  useGetAnalyticsStorageQuery,
+  useGetAnalyticsTimeseriesQuery,
+  useGetProcessingAnalyticsQuery,
+  useRetryDocumentMutation,
 } = api
