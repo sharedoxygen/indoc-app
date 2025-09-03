@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     Box,
     Grid,
@@ -7,12 +7,9 @@ import {
     Typography,
     Chip,
     Checkbox,
-    TextField,
-    InputAdornment,
-    IconButton,
     CardActions,
 } from '@mui/material';
-import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
+
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,10 +28,10 @@ interface DocumentsListProps {
     isLoading: boolean;
     selectedDocuments: string[];
     onDocumentSelect: (selected: string[]) => void;
+    searchTerm?: string;
 }
 
-export const DocumentsList: React.FC<DocumentsListProps> = ({ documents, isLoading, selectedDocuments, onDocumentSelect }) => {
-    const [searchTerm, setSearchTerm] = useState('');
+export const DocumentsList: React.FC<DocumentsListProps> = ({ documents, isLoading, selectedDocuments, onDocumentSelect, searchTerm }) => {
     const navigate = useNavigate();
 
     const handleDocumentToggle = (docId: string) => {
@@ -48,35 +45,11 @@ export const DocumentsList: React.FC<DocumentsListProps> = ({ documents, isLoadi
         navigate(`/document/${docId}`);
     };
 
-    const filteredDocuments = documents.filter(doc =>
-        doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Server-side search already applied; show the provided documents
+    const filteredDocuments = documents;
 
     return (
         <Box>
-            <TextField
-                fullWidth
-                placeholder="Search documents..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                    startAdornment: (
-                        <InputAdornment position="start">
-                            <SearchIcon />
-                        </InputAdornment>
-                    ),
-                    endAdornment: searchTerm && (
-                        <InputAdornment position="end">
-                            <IconButton onClick={() => setSearchTerm('')}>
-                                <ClearIcon />
-                            </IconButton>
-                        </InputAdornment>
-                    ),
-                }}
-                sx={{ mb: 3 }}
-            />
             <Grid container spacing={2}>
                 {isLoading ? (
                     <Typography>Loading...</Typography>

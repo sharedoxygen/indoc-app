@@ -6,8 +6,8 @@ import { DocumentsList } from '../components/DocumentsList'
 
 const DocumentsPage: React.FC = () => {
     const [search, setSearch] = useState('')
-    const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000 })
-    const indexedDocuments = useMemo(() => (data?.documents || []).filter((d: any) => d.status === 'indexed'), [data])
+    const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000, search, status: 'indexed' })
+    const indexedDocuments = useMemo(() => (data?.documents || []), [data])
 
     return (
         <Box>
@@ -36,6 +36,7 @@ const DocumentsPage: React.FC = () => {
                     isLoading={isLoading}
                     selectedDocuments={[]}
                     onDocumentSelect={() => { }}
+                    searchTerm={search}
                 />
             )}
         </Box>

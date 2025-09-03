@@ -4,7 +4,7 @@ File management endpoints
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, func
+from sqlalchemy import select, update, delete, func, String
 import hashlib
 import logging
 from pathlib import Path
@@ -49,14 +49,14 @@ async def list_documents(
     if current_user.role not in [UserRole.ADMIN, UserRole.REVIEWER]:
         query = query.where(Document.uploaded_by == current_user.id)
     
-    # Add search filter - use Elasticsearch directly
+    # Add search filter - prefer Elasticsearch, with DB fallback and tags support
     if search:
         try:
             from app.services.search.elasticsearch_service import ElasticsearchService
             es_service = ElasticsearchService()
             
             # Search in Elasticsearch (no extra filters for now)
-            search_results = await es_service.search(search, 1000)  
+            search_results = await es_service.search(search, 1000)
             search_doc_ids = [result["id"] for result in search_results]
             
             if search_doc_ids:
@@ -65,8 +65,8 @@ async def list_documents(
                 uuid_list = [UUID(doc_id) for doc_id in search_doc_ids]
                 query = query.where(Document.uuid.in_(uuid_list))
             else:
-                # No search results found, return empty
-                query = query.where(Document.uuid == "00000000-0000-0000-0000-000000000000")  # Non-existent ID
+                # ES returned no hits – fall back to DB fuzzy search
+                raise RuntimeError("ES returned no results; using DB fallback")
                 
         except Exception as e:
             logger.error(f"Elasticsearch search error, falling back to database search: {e}")
@@ -76,7 +76,8 @@ async def list_documents(
                 func.lower(Document.filename).like(search_term) |
                 func.lower(Document.title).like(search_term) |
                 func.lower(Document.description).like(search_term) |
-                func.lower(Document.full_text).like(search_term)
+                func.lower(Document.full_text).like(search_term) |
+                func.lower(func.cast(Document.tags, String)).like(search_term)
             )
     
     # Add file type filter
@@ -317,6 +318,16 @@ async def update_document(
     db.add(audit_log)
     await db.commit()
     
+    # If searchable fields changed, trigger reindex in background
+    if any(field in update_dict for field in ["title", "description", "tags", "full_text"]):
+        try:
+            from app.tasks.document import reindex_document
+            # Task expects DB id
+            reindex_document.delay(str(document.id))
+            logger.info(f"Queued reindex for document {document.filename} ({document.uuid})")
+        except Exception as e:
+            logger.warning(f"Failed to queue reindex for {document.uuid}: {e}")
+
     return DocumentResponse.from_orm(document)
 
 

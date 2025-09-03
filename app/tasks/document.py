@@ -56,6 +56,21 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
         document.status = "processing"
         self.db.commit()
         
+        # Virus scan before extraction
+        try:
+            from app.services.virus_scanner import VirusScanner
+            scanner = VirusScanner()
+            scan_result = scanner.scan_file_sync(Path(document.storage_path))
+            document.virus_scan_status = scan_result.get("status", "error")
+            self.db.commit()
+            if scan_result.get("status") == "infected":
+                document.status = "failed"
+                document.error_message = ", ".join(scan_result.get("threats", ["Virus detected"]))
+                self.db.commit()
+                return {"status": "error", "message": document.error_message}
+        except Exception as e:
+            logger.warning(f"Virus scan error: {e}")
+
         # Extract text (sync wrapper)
         text_service = TextExtractionService()
         extracted = text_service.extract_text_sync(Path(document.storage_path))
@@ -84,8 +99,12 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
             
             # Index in search engines (sync wrapper for async services)
             try:
-                # Run async indexing in sync context
-                run_async(index_document())
+                from app.services.search.elasticsearch_service import ElasticsearchService
+                from app.services.search.weaviate_service import WeaviateService
+                es = ElasticsearchService()
+                weav = WeaviateService()
+                run_async(es.index_document(doc_id=str(document.uuid), content=document.full_text, metadata=metadata))
+                run_async(weav.index_document(doc_id=str(document.uuid), content=document.full_text, metadata=metadata))
                 
             except Exception as e:
                 logger.error(f"Search indexing failed: {e}")

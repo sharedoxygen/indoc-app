@@ -34,8 +34,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { ollamaService, OllamaModel } from '../services/ollamaService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import rehypeHighlight from 'rehype-highlight';
 import { jsPDF } from 'jspdf';
 
 interface Message {
@@ -63,7 +61,8 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [selectedModel, setSelectedModel] = useState('');
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
-  const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -94,23 +93,22 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
     }
   }, [lastMessage]);
 
-  useEffect(() => {
-    const loadModels = async () => {
-      setModelsLoading(true);
-      try {
-        const models = await ollamaService.getAvailableModels();
-        setAvailableModels(models);
-        if (models.length > 0 && !selectedModel) {
-          setSelectedModel(models[0].name);
-        }
-      } catch (error) {
-        console.error('Failed to load Ollama models:', error);
-      } finally {
-        setModelsLoading(false);
+  const ensureModelsLoaded = async () => {
+    if (modelsLoaded || modelsLoading) return;
+    setModelsLoading(true);
+    try {
+      const models = await ollamaService.getAvailableModels();
+      setAvailableModels(models);
+      if (models.length > 0 && !selectedModel) {
+        setSelectedModel(models[0].name);
       }
-    };
-    loadModels();
-  }, []);
+      setModelsLoaded(true);
+    } catch (error) {
+      console.error('Failed to load Ollama models:', error);
+    } finally {
+      setModelsLoading(false);
+    }
+  };
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
@@ -237,6 +235,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               label="AI Model"
               disabled={modelsLoading || availableModels.length === 0}
               startAdornment={<ModelIcon fontSize="small" />}
+              onOpen={ensureModelsLoaded}
             >
               {modelsLoading ? (
                 <MenuItem disabled>
@@ -300,7 +299,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
               </Avatar>
               <Paper elevation={1} sx={{ p: 1.5, maxWidth: '78%', bgcolor: message.role === 'user' ? 'primary.light' : 'background.paper', color: message.role === 'user' ? 'primary.contrastText' : 'text.primary', border: message.role === 'assistant' ? 1 : 0, borderColor: 'divider', borderRadius: 2 }}>
                 <Box sx={{ '& table': { width: '100%', borderCollapse: 'collapse', my: 1 }, '& th, & td': { border: '1px solid', borderColor: 'divider', p: 1, verticalAlign: 'top' }, '& pre': { p: 1.5, overflowX: 'auto', bgcolor: 'background.default', borderRadius: 1, border: 1, borderColor: 'divider' }, '& code': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' } }} ref={message.role === 'assistant' ? lastAssistantRef : undefined}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw as any, rehypeHighlight as any]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {message.content}
                   </ReactMarkdown>
                 </Box>
