@@ -125,3 +125,4 @@ celerybeat-schedule.db
 tmp/*.log
 tmp/*.pid
 tmp/*.out
+frontend/node_modules/.vite/
