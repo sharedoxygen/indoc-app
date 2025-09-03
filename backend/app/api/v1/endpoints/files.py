@@ -45,8 +45,11 @@ async def list_documents(
 ) -> Any:
     """List documents accessible to current user with search and filtering"""
     
-    # Build query based on user role
+    # Build query based on user role and tenant
     query = select(Document)
+    # Always scope by tenant if available
+    if getattr(current_user, 'tenant_id', None):
+        query = query.where(Document.tenant_id == current_user.tenant_id)
     if current_user.role not in [UserRole.ADMIN, UserRole.REVIEWER]:
         query = query.where(Document.uploaded_by == current_user.id)
     
@@ -145,6 +148,7 @@ async def upload_file(
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
+    folder_path: Optional[str] = Form(None),
     current_user: User = Depends(require_uploader),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
@@ -191,7 +195,9 @@ async def upload_file(
             status="uploaded",
             title=title or file.filename,
             description=description,
-            uploaded_by=current_user.id
+            uploaded_by=current_user.id,
+            tenant_id=getattr(current_user, 'tenant_id', None),
+            folder_structure=folder_path
         )
         
         db.add(document)
@@ -216,6 +222,7 @@ async def upload_file(
             "filename": document.filename,
             "status": document.status,
             "virus_scan_status": document.virus_scan_status,
+            "tenant_id": str(getattr(current_user, 'tenant_id', '')),
             "message": "File uploaded successfully and processing started"
         }
         

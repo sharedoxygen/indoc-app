@@ -67,6 +67,12 @@ class WeaviateService:
                         "operator": "Equal",
                         "valueText": filters["uploaded_by"]
                     })
+                if filters.get("tenant_id"):
+                    filter_conditions.append({
+                        "path": ["tenant_id"],
+                        "operator": "Equal",
+                        "valueText": filters["tenant_id"]
+                    })
                 
                 if filter_conditions:
                     if len(filter_conditions) == 1:
@@ -82,7 +88,7 @@ class WeaviateService:
                 self.client.query
                 .get(self.class_name, [
                     "document_id", "filename", "title", "content", 
-                    "description", "file_type", "tags", "uploaded_by", 
+                    "description", "file_type", "tags", "uploaded_by", "tenant_id",
                     "created_at", "file_size"
                 ])
                 .with_near_text({
@@ -120,6 +126,7 @@ class WeaviateService:
                         "tags": item.get("tags", []),
                         "created_at": item.get("created_at", ""),
                         "uploaded_by": item.get("uploaded_by", ""),
+                        "tenant_id": item.get("tenant_id", ""),
                         "search_type": "semantic"
                     }
                     results.append(result)
@@ -159,6 +166,7 @@ class WeaviateService:
                 "file_type": metadata.get("file_type", ""),
                 "tags": metadata.get("tags", []),
                 "uploaded_by": metadata.get("uploaded_by", ""),
+                "tenant_id": metadata.get("tenant_id", ""),
                 "created_at": metadata.get("created_at", ""),
                 "updated_at": metadata.get("updated_at", ""),
                 "file_size": metadata.get("file_size", 0),
@@ -244,6 +252,12 @@ class WeaviateService:
                         "name": "uploaded_by",
                         "dataType": ["text"],
                         "description": "User who uploaded the document",
+                        "moduleConfig": {"text2vec-transformers": {"skip": True}}
+                    },
+                    {
+                        "name": "tenant_id",
+                        "dataType": ["text"],
+                        "description": "Tenant identifier",
                         "moduleConfig": {"text2vec-transformers": {"skip": True}}
                     },
                     {

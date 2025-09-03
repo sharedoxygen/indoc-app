@@ -48,10 +48,14 @@ class Document(BaseModel):
     encrypted_fields = Column(JSON, default=list)  # List of encrypted field names
     access_level = Column(String(50), default="private")  # public, internal, private, confidential
     
-    # User relationship
+    # Multi-tenancy and user relationship
+    tenant_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     uploaded_by_user = relationship("User", back_populates="documents")
     
+    # Optional folder structure for original source path (relative)
+    folder_structure = Column(String(500))
+
     # Relationships
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
     document_metadata = relationship("Metadata", back_populates="document", cascade="all, delete-orphan")

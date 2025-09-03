@@ -45,19 +45,27 @@ class SearchProvider:
         # Transform query for better retrieval
         transformed_queries = await self.query_transformer.transform(query)
         
+        # Ensure tenant scoping
+        effective_filters = filters.copy() if filters else {}
+        tenant_id = None
+        if context and isinstance(context, dict):
+            tenant_id = context.get("user", {}).get("tenant_id") or context.get("tenant_id")
+        if tenant_id:
+            effective_filters["tenant_id"] = tenant_id
+
         # Execute searches in parallel
         search_tasks = []
         
         # Elasticsearch keyword search
         for q in transformed_queries.get("keyword_queries", [query]):
             search_tasks.append(
-                self.es_service.search(q, limit * 2, filters)
+                self.es_service.search(q, limit * 2, effective_filters)
             )
         
         # Weaviate vector search
         for q in transformed_queries.get("semantic_queries", [query]):
             search_tasks.append(
-                self.weaviate_service.vector_search(q, limit * 2, filters)
+                self.weaviate_service.vector_search(q, limit * 2, effective_filters)
             )
         
         # Wait for all searches to complete
@@ -82,7 +90,7 @@ class SearchProvider:
             "results": final_results,
             "total_results": len(final_results),
             "execution_time_ms": execution_time,
-            "filters": filters
+            "filters": effective_filters
         }
     
     async def rerank(

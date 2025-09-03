@@ -80,6 +80,10 @@ class ElasticsearchService:
                     filter_clauses.append({
                         "term": {"uploaded_by": filters["uploaded_by"]}
                     })
+                if filters.get("tenant_id"):
+                    filter_clauses.append({
+                        "term": {"tenant_id": filters["tenant_id"]}
+                    })
             
             # Build complete query
             es_query = {
@@ -132,6 +136,7 @@ class ElasticsearchService:
                     "score": hit["_score"],
                     "file_type": source["file_type"],
                     "tags": source.get("tags", []),
+                    "tenant_id": source.get("tenant_id", ""),
                     "created_at": source["created_at"],
                     "uploaded_by": source.get("uploaded_by", ""),
                     "search_type": "keyword"
@@ -173,6 +178,8 @@ class ElasticsearchService:
                 "file_type": metadata.get("file_type", ""),
                 "tags": metadata.get("tags", []),
                 "uploaded_by": metadata.get("uploaded_by", ""),
+                "tenant_id": metadata.get("tenant_id", ""),
+                "folder_path": metadata.get("folder_path", None),
                 "created_at": metadata.get("created_at") or datetime.utcnow().isoformat(),
                 "updated_at": metadata.get("updated_at") or metadata.get("created_at") or datetime.utcnow().isoformat(),
                 "file_size": metadata.get("file_size", 0),
@@ -214,6 +221,8 @@ class ElasticsearchService:
                         "file_type": {"type": "keyword"},
                         "tags": {"type": "keyword"},
                         "uploaded_by": {"type": "keyword"},
+                        "tenant_id": {"type": "keyword"},
+                        "folder_path": {"type": "keyword"},
                         "created_at": {"type": "date"},
                         "updated_at": {"type": "date"},
                         "file_size": {"type": "long"},

@@ -50,7 +50,8 @@ async def search_documents(
         "user": {
             "id": current_user.id,
             "email": current_user.email,
-            "role": getattr(current_user.role, "value", current_user.role)
+            "role": getattr(current_user.role, "value", current_user.role),
+            "tenant_id": getattr(current_user, 'tenant_id', None)
         }
     }
     
@@ -61,6 +62,11 @@ async def search_documents(
     if getattr(current_user.role, "value", current_user.role) not in ["Admin", "Reviewer"]:
         search_query.filters["uploaded_by"] = current_user.id
     
+    # Ensure filters include tenant_id (server-enforced)
+    tenant_id = getattr(current_user, 'tenant_id', None)
+    if tenant_id:
+        search_query.filters["tenant_id"] = tenant_id
+
     # Perform search
     try:
         results = await search_provider.search(

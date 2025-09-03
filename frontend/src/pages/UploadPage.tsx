@@ -39,6 +39,7 @@ interface UploadFile {
   progress: number
   error?: string
   response?: any
+  relativePath?: string
 }
 
 const UploadPage: React.FC = () => {
@@ -53,17 +54,18 @@ const UploadPage: React.FC = () => {
   const [showResultModal, setShowResultModal] = useState(false)
   const [selectedResult, setSelectedResult] = useState<any>(null)
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map((file) => ({
+  const onDrop = useCallback((acceptedFiles: any[]) => {
+    const newFiles = acceptedFiles.map((file: any) => ({
       file,
       id: Math.random().toString(36).substr(2, 9),
       status: 'pending' as const,
       progress: 0,
+      relativePath: (file as any).path || (file as any).webkitRelativePath || undefined,
     }))
     setFiles((prev) => [...prev, ...newFiles])
   }, [])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open: openFileDialog } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
@@ -82,6 +84,24 @@ const UploadPage: React.FC = () => {
     maxSize: 100 * 1024 * 1024, // 100MB
   })
 
+  const handleFolderSelect = () => {
+    // Programmatically open directory picker by using a hidden input
+    const input = document.createElement('input')
+    input.type = 'file'
+    ;(input as any).webkitdirectory = true
+    input.multiple = true
+    input.onchange = (e: any) => {
+      const fileList: FileList = e.target.files
+      const arr: any[] = []
+      for (let i = 0; i < fileList.length; i += 1) {
+        const f: any = fileList[i]
+        arr.push(f)
+      }
+      onDrop(arr)
+    }
+    input.click()
+  }
+
   const handleUpload = async () => {
     const pendingFiles = files.filter((f) => f.status === 'pending')
 
@@ -99,6 +119,7 @@ const UploadPage: React.FC = () => {
       if (metadata.title) formData.append('title', metadata.title)
       if (metadata.description) formData.append('description', metadata.description)
       if (metadata.tags) formData.append('tags', metadata.tags)
+      if (uploadFile.relativePath) formData.append('folder_path', uploadFile.relativePath)
 
       try {
         const response = await uploadDocument(formData).unwrap()
@@ -207,6 +228,10 @@ const UploadPage: React.FC = () => {
               <Typography variant="caption" color="text.secondary">
                 Maximum file size: 100MB
               </Typography>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1 }}>
+                <Button variant="outlined" size="small" onClick={openFileDialog}>Select Files</Button>
+                <Button variant="outlined" size="small" onClick={handleFolderSelect}>Upload Folder</Button>
+              </Box>
             </Box>
 
             {hasFiles && (
@@ -238,14 +263,13 @@ const UploadPage: React.FC = () => {
                     >
                       <ListItemIcon>{getStatusIcon(uploadFile.status)}</ListItemIcon>
                       <ListItemText
-                        primary={uploadFile.file.name}
+                        primary={uploadFile.relativePath || uploadFile.file.name}
                         secondary={
                           uploadFile.status === 'uploading' ? (
-                            <LinearProgress
-                              variant="determinate"
-                              value={uploadFile.progress}
-                              sx={{ mt: 1 }}
-                            />
+                            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <LinearProgress variant="determinate" value={uploadFile.progress} sx={{ flex: 1 }} />
+                              <Typography variant="caption">{Math.round(uploadFile.progress)}%</Typography>
+                            </Box>
                           ) : uploadFile.error ? (
                             <Typography color="error" variant="caption">
                               {uploadFile.error}
