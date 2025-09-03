@@ -22,8 +22,37 @@ export class OllamaService {
   private baseUrl: string;
 
   constructor() {
-    // Ollama typically runs on port 11434
+    // Resolved lazily from backend admin settings; fallback to localhost
+    this.baseUrl = '';
+  }
+
+  private async resolveBaseUrl(): Promise<string> {
+    if (this.baseUrl) return this.baseUrl;
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      // Try to use backend-configured base URL (admin endpoint)
+      const resp = await fetch('/api/v1/settings/admin', { headers });
+      if (resp.ok) {
+        const data = await resp.json();
+        const url = data?.ollama?.base_url;
+        if (typeof url === 'string' && url.length > 0) {
+          this.baseUrl = url;
+          return this.baseUrl;
+        }
+      }
+    } catch (_) {
+      // ignore and fall back to default
+    }
     this.baseUrl = 'http://localhost:11434';
+    return this.baseUrl;
+  }
+
+  private parseSizeFromModelName(name: string): string | undefined {
+    // Try to infer sizes like 7b, 13b, 70b, 8x7b etc.
+    const m = name.match(/(\d+(?:x\d+)?)(b)/i);
+    return m ? m[1] + m[2].toUpperCase() : undefined;
   }
 
   private parseParameterSize(param: string | undefined): number {
@@ -40,18 +69,42 @@ export class OllamaService {
 
   async getAvailableModels(): Promise<OllamaModel[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // 1) Prefer backend endpoint (uses configured OLLAMA_BASE_URL and RBAC)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const backendResp = await fetch('/api/v1/llm/models', { headers });
+      if (backendResp.ok) {
+        const backendModels: Array<{ name: string; description?: string; size?: string }> = await backendResp.json();
+        const mapped: OllamaModel[] = backendModels
+          .filter(m => !m.name.includes('embed') && !m.name.includes('embedding'))
+          .map(m => ({
+            name: m.name,
+            model: m.name,
+            size: 0,
+            digest: '',
+            details: {
+              parameter_size: this.parseSizeFromModelName(m.name) || undefined as unknown as string,
+              quantization_level: '',
+              family: m.name.split(':')[0] || 'model'
+            },
+            modified_at: ''
+          }));
+        if (mapped.length > 0) {
+          return mapped.sort((a, b) =>
+            this.parseParameterSize(a.details?.parameter_size) - this.parseParameterSize(b.details?.parameter_size)
+          );
+        }
       }
+
+      // 2) Fallback: query Ollama directly
+      const baseUrl = await this.resolveBaseUrl();
+      const response = await fetch(`${baseUrl}/api/tags`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data: OllamaModelsResponse = await response.json();
-
       const chatModels = data.models.filter(model =>
-        !model.name.includes('embed') &&
-        !model.name.includes('embedding')
+        !model.name.includes('embed') && !model.name.includes('embedding')
       );
-
-      // Sort by parameter_size ascending (smallest first)
       return chatModels.sort((a, b) =>
         this.parseParameterSize(a.details?.parameter_size) - this.parseParameterSize(b.details?.parameter_size)
       );
@@ -63,7 +116,8 @@ export class OllamaService {
 
   async checkConnection(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`);
+      const baseUrl = await this.resolveBaseUrl();
+      const response = await fetch(`${baseUrl}/api/tags`);
       return response.ok;
     } catch (error) {
       console.error('Ollama connection check failed:', error);

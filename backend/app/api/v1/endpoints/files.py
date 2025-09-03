@@ -37,6 +37,7 @@ async def list_documents(
     limit: int = 100,
     search: Optional[str] = None,
     file_type: Optional[str] = None,
+    status: Optional[str] = None,
     sort_by: str = "created_at",
     sort_order: str = "desc",
     current_user: User = Depends(get_current_user),
@@ -78,15 +79,19 @@ async def list_documents(
                 func.lower(Document.full_text).like(search_term)
             )
     
-    # Add file type filter
+    # Add file type filter (case-insensitive)
     if file_type and file_type != "all":
-        query = query.where(Document.file_type == file_type)
+        query = query.where(func.lower(Document.file_type) == func.lower(file_type))
+
+    # Add status filter if provided (e.g., indexed)
+    if status and status != "all":
+        query = query.where(func.lower(Document.status) == func.lower(status))
     
     # Add sorting
     if sort_by == "filename":
-        order_col = Document.filename
+        order_col = func.lower(Document.filename)
     elif sort_by == "file_type":
-        order_col = Document.file_type
+        order_col = func.lower(Document.file_type)
     elif sort_by == "file_size":
         order_col = Document.file_size
     elif sort_by == "updated_at":

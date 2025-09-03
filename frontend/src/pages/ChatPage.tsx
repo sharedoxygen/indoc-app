@@ -1,17 +1,27 @@
 import React, { useMemo, useState } from 'react'
-import { Box, Typography, Grid, Paper, Chip, Card, CardContent, Checkbox, Avatar, Button } from '@mui/material'
+import { Box, Typography, Grid, Paper, Chip, Card, CardContent, Checkbox, Avatar, Button, TextField, InputAdornment, MenuItem, Select, FormControl, InputLabel } from '@mui/material'
 import { DocumentChat } from '../components/DocumentChat'
 import { useGetDocumentsQuery } from '../store/api'
 import { format } from 'date-fns'
 import { Chat as ChatIcon } from '@mui/icons-material'
+import { Search as SearchIcon } from '@mui/icons-material'
 
 const ChatPage: React.FC = () => {
     const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
-    const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000 })
+    const [search, setSearch] = useState('')
+    const [fileType, setFileType] = useState<'all' | string>('all')
+    const [sortBy, setSortBy] = useState<'created_at' | 'filename' | 'file_type' | 'file_size' | 'updated_at'>('created_at')
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+    const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000, search: search || undefined, file_type: fileType, sort_by: sortBy, sort_order: sortOrder, status: 'indexed' })
     // Only show documents that are searchable (indexed)
     const availableDocuments = useMemo(
         () => (data?.documents || []).filter((d: any) => d.status === 'indexed'),
         [data]
+    )
+
+    const selectedDocs = useMemo(
+        () => availableDocuments.filter((d: any) => selectedDocuments.includes(d.uuid)),
+        [availableDocuments, selectedDocuments]
     )
 
     const handleDocumentToggle = (docId: string) => {
@@ -68,6 +78,65 @@ const ChatPage: React.FC = () => {
                                 label={`${selectedDocuments.length} document(s) selected`}
                                 color={selectedDocuments.length > 0 ? 'primary' : 'default'}
                             />
+                            <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: '1fr', gap: 1.5 }}>
+                                <TextField
+                                    size="small"
+                                    fullWidth
+                                    placeholder="Search documents..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>) }}
+                                />
+                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                                        <InputLabel>Type</InputLabel>
+                                        <Select label="Type" value={fileType} onChange={(e) => setFileType(e.target.value as any)}>
+                                            <MenuItem value="all">All</MenuItem>
+                                            <MenuItem value="pdf">PDF</MenuItem>
+                                            <MenuItem value="txt">TXT</MenuItem>
+                                            <MenuItem value="docx">DOCX</MenuItem>
+                                            <MenuItem value="pptx">PPTX</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                                        <InputLabel>Sort By</InputLabel>
+                                        <Select label="Sort By" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+                                            <MenuItem value="created_at">Created</MenuItem>
+                                            <MenuItem value="updated_at">Updated</MenuItem>
+                                            <MenuItem value="filename">Filename</MenuItem>
+                                            <MenuItem value="file_type">File Type</MenuItem>
+                                            <MenuItem value="file_size">File Size</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                                        <InputLabel>Order</InputLabel>
+                                        <Select label="Order" value={sortOrder} onChange={(e) => setSortOrder(e.target.value as any)}>
+                                            <MenuItem value="desc">Desc</MenuItem>
+                                            <MenuItem value="asc">Asc</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <Chip label={`${data?.total ?? availableDocuments.length} results`} size="small" />
+                                </Box>
+                                {selectedDocs.length > 0 && (
+                                    <Box sx={{ mt: 0.5, p: 1, borderRadius: 2, bgcolor: 'background.default', border: 1, borderColor: 'divider' }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                                            Selected ({selectedDocs.length})
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, maxHeight: 120, overflow: 'auto', pr: 0.5 }}>
+                                            {selectedDocs.map((doc: any) => (
+                                                <Chip
+                                                    key={doc.uuid}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    label={doc.title || doc.filename}
+                                                    onDelete={() => handleDocumentToggle(doc.uuid)}
+                                                    sx={{ maxWidth: '100%', '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Box>
+                                )}
+                            </Box>
                         </Box>
 
                         {/* Scrollable Documents List - Only this part scrolls */}

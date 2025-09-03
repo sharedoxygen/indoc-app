@@ -110,6 +110,13 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
     }
   };
 
+  // Preload models once when the chat mounts (so the dropdown is ready)
+  useEffect(() => {
+    // Don't block UI; fire and forget
+    ensureModelsLoaded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => { scrollToBottom(); }, [messages]);
 
   const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
