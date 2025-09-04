@@ -77,8 +77,6 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
                 "file_type": document.file_type,
                 "tags": document.tags or [],
                 "uploaded_by": str(document.uploaded_by),
-                "tenant_id": str(getattr(document, "tenant_id", "")),
-                "folder_path": getattr(document, "folder_structure", None),
                 "created_at": document.created_at.isoformat(),
                 "updated_at": document.updated_at.isoformat() if document.updated_at else document.created_at.isoformat(),
                 "file_size": document.file_size

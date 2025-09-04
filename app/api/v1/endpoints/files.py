@@ -192,14 +192,12 @@ async def upload_file(
             file_type=file_ext,
             file_size=len(content),
             file_hash=file_hash,
-            storage_path=f"./data/storage/{file_hash}.{file_ext}",
-            temp_path=f"./data/temp/{file_hash}.{file_ext}",
+            storage_path=f"backend/data/storage/{file_hash}.{file_ext}",
+            temp_path=f"backend/data/temp/{file_hash}.{file_ext}",
             status="uploaded",
             title=title or file.filename,
             description=description,
-            uploaded_by=current_user.id,
-            tenant_id=getattr(current_user, 'tenant_id', None),
-            folder_structure=folder_path
+            uploaded_by=current_user.id
         )
         
         db.add(document)
