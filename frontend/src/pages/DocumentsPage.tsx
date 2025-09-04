@@ -9,8 +9,19 @@ const DocumentsPage: React.FC = () => {
     const [fileType, setFileType] = useState<'all' | string>('all')
     const [sortBy, setSortBy] = useState<'created_at' | 'updated_at' | 'filename' | 'file_type' | 'file_size'>('created_at')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-    const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000, search: search || undefined, status: 'indexed', file_type: fileType, sort_by: sortBy, sort_order: sortOrder })
-    const indexedDocuments = useMemo(() => (data?.documents || []), [data])
+    const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000, search: search || undefined, status: 'indexed', file_type: fileType, sort_by: sortBy, sort_order: sortOrder }, { 
+        // Force cache invalidation to ensure fresh data
+        refetchOnMountOrArgChange: true
+    })
+    const indexedDocuments = useMemo(() => {
+        const docs = data?.documents || []
+        // Debug: log what we're getting from the API
+        if (docs.length > 0) {
+            console.log('Documents received:', docs.map(d => ({ name: d.filename, status: d.status })))
+        }
+        // Extra filter on frontend as safety net
+        return docs.filter((d: any) => d.status === 'indexed')
+    }, [data])
 
     return (
         <Box>
