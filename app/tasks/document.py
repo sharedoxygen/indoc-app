@@ -171,32 +171,17 @@ def batch_process_documents(self, document_ids: list) -> Dict[str, Any]:
 
 @celery_app.task(base=DocumentTask, bind=True, name="app.tasks.document.process_pending_documents")
 def process_pending_documents(self) -> Dict[str, Any]:
-    """Periodic task to process pending documents"""
-    
+    """Periodic task to process documents in 'uploaded' state."""
     try:
-        # Find pending documents
-        pending_docs = self.db.query(Document).filter(
-            Document.processing_status == "pending"
-        ).limit(10).all()
-        
+        pending_docs = self.db.query(Document).filter(Document.status == "uploaded").limit(10).all()
         if not pending_docs:
             return {"status": "success", "message": "No pending documents"}
-        
-        # Process each document
         for doc in pending_docs:
-            process_document.delay(str(doc.id))
-        
-        return {
-            "status": "success",
-            "processed": len(pending_docs)
-        }
-        
+            process_document.delay(str(doc.uuid))
+        return {"status": "success", "processed": len(pending_docs)}
     except Exception as e:
         logger.error(f"Error processing pending documents: {str(e)}")
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+        return {"status": "error", "message": str(e)}
 
 
 @celery_app.task(base=DocumentTask, bind=True, name="app.tasks.document.reindex_document")

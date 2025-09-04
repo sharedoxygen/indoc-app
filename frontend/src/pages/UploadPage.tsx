@@ -85,19 +85,28 @@ const UploadPage: React.FC = () => {
   })
 
   const handleFolderSelect = () => {
-    // Programmatically open directory picker by using a hidden input
-    const input = document.createElement('input')
+    // Programmatically open directory picker via a hidden input appended to DOM
+    const input = document.createElement('input') as HTMLInputElement & { webkitdirectory?: boolean }
     input.type = 'file'
-    ;(input as any).webkitdirectory = true
+    input.style.display = 'none'
     input.multiple = true
+    input.setAttribute('directory', '')
+    input.setAttribute('webkitdirectory', '')
+      ; (input as any).webkitdirectory = true
+    document.body.appendChild(input)
     input.onchange = (e: any) => {
-      const fileList: FileList = e.target.files
-      const arr: any[] = []
-      for (let i = 0; i < fileList.length; i += 1) {
-        const f: any = fileList[i]
-        arr.push(f)
+      try {
+        const fileList: FileList = e.target.files
+        const arr: any[] = []
+        for (let i = 0; i < fileList.length; i += 1) {
+          const f: any = fileList[i]
+          arr.push(f)
+        }
+        onDrop(arr)
+      } finally {
+        // Clean up the temporary input
+        document.body.removeChild(input)
       }
-      onDrop(arr)
     }
     input.click()
   }

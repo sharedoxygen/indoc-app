@@ -171,9 +171,9 @@ def process_pending_documents(self) -> Dict[str, Any]:
     """Periodic task to process pending documents"""
     
     try:
-        # Find pending documents
+        # Find documents queued for processing
         pending_docs = self.db.query(Document).filter(
-            Document.processing_status == "pending"
+            Document.status == "uploaded"
         ).limit(10).all()
         
         if not pending_docs:
@@ -181,7 +181,7 @@ def process_pending_documents(self) -> Dict[str, Any]:
         
         # Process each document
         for doc in pending_docs:
-            process_document.delay(str(doc.id))
+            process_document.delay(str(doc.uuid))
         
         return {
             "status": "success",
