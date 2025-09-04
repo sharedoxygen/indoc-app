@@ -48,8 +48,9 @@ async def list_documents(
     # Build query based on user role and tenant
     query = select(Document)
     # Always scope by tenant if available
-    if getattr(current_user, 'tenant_id', None):
-        query = query.where(Document.tenant_id == current_user.tenant_id)
+    # TODO: Re-enable when Document model has tenant_id
+    # if getattr(current_user, 'tenant_id', None):
+    #     query = query.where(Document.tenant_id == current_user.tenant_id)
     if current_user.role not in [UserRole.ADMIN, UserRole.REVIEWER]:
         query = query.where(Document.uploaded_by == current_user.id)
     
@@ -128,6 +129,7 @@ async def list_documents(
             "file_type": doc.file_type,
             "file_size": doc.file_size,
             "status": doc.status,
+            "error_message": doc.error_message,
             "virus_scan_status": doc.virus_scan_status,
             "title": doc.title,
             "description": doc.description,
