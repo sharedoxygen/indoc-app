@@ -3,13 +3,26 @@ import { Box, Typography, TextField, InputAdornment, Paper, Chip, CircularProgre
 import { Search as SearchIcon } from '@mui/icons-material'
 import { useGetDocumentsQuery } from '../store/api'
 import { DocumentsList } from '../components/DocumentsList'
+import { useDebounce } from '../hooks/useDebounce'
 
 const DocumentsPage: React.FC = () => {
     const [search, setSearch] = useState('')
     const [fileType, setFileType] = useState<'all' | string>('all')
     const [sortBy, setSortBy] = useState<'created_at' | 'updated_at' | 'filename' | 'file_type' | 'file_size'>('created_at')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-    const { data, isLoading } = useGetDocumentsQuery({ skip: 0, limit: 1000, search: search || undefined, status: 'indexed', file_type: fileType, sort_by: sortBy, sort_order: sortOrder }, { 
+    
+    // Debounce the search term to reduce API calls
+    const debouncedSearch = useDebounce(search, 300)
+    
+    const { data, isLoading } = useGetDocumentsQuery({ 
+        skip: 0, 
+        limit: 1000, 
+        search: debouncedSearch || undefined, 
+        status: 'indexed', 
+        file_type: fileType, 
+        sort_by: sortBy, 
+        sort_order: sortOrder 
+    }, { 
         // Force cache invalidation to ensure fresh data
         refetchOnMountOrArgChange: true
     })

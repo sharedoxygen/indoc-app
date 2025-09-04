@@ -74,13 +74,26 @@ async def list_documents(
                 
         except Exception as e:
             logger.error(f"Elasticsearch search error, falling back to database search: {e}")
-            # Fallback to database search
-            search_term = f"%{search.lower()}%"
+            # Fallback to database search - use PostgreSQL full-text search for better performance
+            from sqlalchemy import text
+            
+            # Use PostgreSQL's full-text search with ts_vector for better performance
+            search_vector = func.to_tsvector('english', 
+                func.coalesce(Document.filename, '') + ' ' +
+                func.coalesce(Document.title, '') + ' ' +
+                func.coalesce(Document.description, '') + ' ' +
+                func.coalesce(Document.full_text, '')
+            )
+            search_query = func.plainto_tsquery('english', search)
+            
+            # Add both full-text search and trigram similarity for best results
             query = query.where(
-                func.lower(Document.filename).like(search_term) |
-                func.lower(Document.title).like(search_term) |
-                func.lower(Document.description).like(search_term) |
-                func.lower(Document.full_text).like(search_term)
+                search_vector.op('@@')(search_query) |
+                func.similarity(Document.filename, search) > 0.1 |
+                func.similarity(Document.title, search) > 0.1
+            ).order_by(
+                func.ts_rank(search_vector, search_query).desc(),
+                func.similarity(Document.filename, search).desc()
             )
     
     # Add file type filter (case-insensitive)
