@@ -10,19 +10,19 @@ const DocumentsPage: React.FC = () => {
     const [fileType, setFileType] = useState<'all' | string>('all')
     const [sortBy, setSortBy] = useState<'created_at' | 'updated_at' | 'filename' | 'file_type' | 'file_size'>('created_at')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-    
+
     // Debounce the search term to reduce API calls
     const debouncedSearch = useDebounce(search, 300)
-    
-    const { data, isLoading } = useGetDocumentsQuery({ 
-        skip: 0, 
-        limit: 1000, 
-        search: debouncedSearch || undefined, 
-        status: 'indexed', 
-        file_type: fileType, 
-        sort_by: sortBy, 
-        sort_order: sortOrder 
-    }, { 
+
+    const { data, isLoading } = useGetDocumentsQuery({
+        skip: 0,
+        limit: 1000,
+        search: debouncedSearch || undefined,
+        status: 'indexed',
+        file_type: fileType,
+        sort_by: sortBy,
+        sort_order: sortOrder
+    }, {
         // Force cache invalidation to ensure fresh data
         refetchOnMountOrArgChange: true
     })

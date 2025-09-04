@@ -54,26 +54,56 @@ async def list_documents(
     if current_user.role not in [UserRole.ADMIN, UserRole.REVIEWER]:
         query = query.where(Document.uploaded_by == current_user.id)
     
-    # Add search filter - use Elasticsearch directly
+    # Add search filter - use hybrid search (Elasticsearch + Weaviate)
     if search:
         try:
+            # Use hybrid search combining keyword and semantic search
             from app.services.search.elasticsearch_service import ElasticsearchService
-            es_service = ElasticsearchService()
-            # Search in Elasticsearch (no extra filters for now)
-            search_results = await es_service.search(search, 1000)  
-            search_doc_ids = [result["id"] for result in search_results]
+            from app.services.search.weaviate_service import WeaviateService
+            import asyncio
             
-            if search_doc_ids:
+            es_service = ElasticsearchService()
+            weaviate_service = WeaviateService()
+            
+            # Execute both searches in parallel for better performance
+            search_tasks = [
+                es_service.search(search, 500),  # Keyword search
+                weaviate_service.vector_search(search, 500)  # Semantic search
+            ]
+            
+            try:
+                es_results, weaviate_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+            except Exception as e:
+                logger.warning(f"Parallel search failed, trying sequential: {e}")
+                es_results = await es_service.search(search, 500)
+                try:
+                    weaviate_results = await weaviate_service.vector_search(search, 500)
+                except Exception:
+                    logger.warning("Weaviate search failed, using ES only")
+                    weaviate_results = []
+            
+            # Combine and deduplicate results
+            combined_doc_ids = set()
+            
+            # Add Elasticsearch results
+            if isinstance(es_results, list):
+                combined_doc_ids.update(result["id"] for result in es_results)
+            
+            # Add Weaviate results
+            if isinstance(weaviate_results, list):
+                combined_doc_ids.update(result.get("document_id") for result in weaviate_results if result.get("document_id"))
+            
+            if combined_doc_ids:
                 # Convert string UUIDs to UUID objects for the query
                 from uuid import UUID
-                uuid_list = [UUID(doc_id) for doc_id in search_doc_ids]
+                uuid_list = [UUID(doc_id) for doc_id in combined_doc_ids if doc_id]
                 query = query.where(Document.uuid.in_(uuid_list))
             else:
                 # No search results found, return empty
                 query = query.where(Document.uuid == "00000000-0000-0000-0000-000000000000")  # Non-existent ID
                 
         except Exception as e:
-            logger.error(f"Elasticsearch search error, falling back to database search: {e}")
+            logger.error(f"Hybrid search error, falling back to database search: {e}")
             # Fallback to database search - use PostgreSQL full-text search for better performance
             from sqlalchemy import text
             

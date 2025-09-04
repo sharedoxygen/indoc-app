@@ -13,18 +13,18 @@ const ChatPage: React.FC = () => {
     const [fileType, setFileType] = useState<'all' | string>('all')
     const [sortBy, setSortBy] = useState<'created_at' | 'filename' | 'file_type' | 'file_size' | 'updated_at'>('created_at')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-    
+
     // Debounce the search term to reduce API calls
     const debouncedSearch = useDebounce(search, 300)
-    
-    const { data, isLoading } = useGetDocumentsQuery({ 
-        skip: 0, 
-        limit: 1000, 
-        search: debouncedSearch || undefined, 
-        file_type: fileType, 
-        sort_by: sortBy, 
-        sort_order: sortOrder, 
-        status: 'indexed' 
+
+    const { data, isLoading } = useGetDocumentsQuery({
+        skip: 0,
+        limit: 1000,
+        search: debouncedSearch || undefined,
+        file_type: fileType,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+        status: 'indexed'
     })
     // Only show documents that are searchable (indexed)
     const availableDocuments = useMemo(
