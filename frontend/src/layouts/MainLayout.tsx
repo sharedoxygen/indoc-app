@@ -35,6 +35,7 @@ import {
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
   HourglassTop as HourglassTopIcon,
+  Timeline as TimelineIcon,
 } from '@mui/icons-material'
 import { useAppSelector, useAppDispatch } from '../hooks/redux'
 import { logout } from '../store/slices/authSlice'
@@ -74,6 +75,7 @@ const MainLayout: React.FC = () => {
     { text: 'Chat', icon: <ChatIcon />, path: '/chat', roles: ['all'] },
     { text: 'Documents', icon: <DocumentIcon />, path: '/documents', roles: ['all'] },
     { text: 'Upload', icon: <UploadIcon />, path: '/upload', roles: ['Admin', 'Uploader', 'Reviewer'] },
+    { text: 'Processing Pipeline', icon: <TimelineIcon />, path: '/processing-pipeline', roles: ['all'] },
     { text: 'Processing Queue', icon: <HourglassTopIcon />, path: '/processing-queue', roles: ['all'] },
     { text: 'Users', icon: <PeopleIcon />, path: '/users', roles: ['Admin'] },
     { text: 'Audit Trail', icon: <HistoryIcon />, path: '/audit', roles: ['Admin', 'Compliance'] },

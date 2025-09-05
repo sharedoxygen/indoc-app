@@ -22,6 +22,7 @@ import DashboardPage from './pages/DashboardPage'
 import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ProcessingQueuePage from './pages/ProcessingQueuePage'
+import ProcessingPipelinePage from './pages/ProcessingPipelinePage'
 
 // Components
 import PrivateRoute from './components/PrivateRoute'
@@ -65,6 +66,7 @@ function App() {
             <Route path="/users" element={<RoleManagementPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/processing-queue" element={<ProcessingQueuePage />} />
+            <Route path="/processing-pipeline" element={<ProcessingPipelinePage />} />
           </Route>
         </Route>
 

@@ -31,6 +31,8 @@ import { useDropzone } from 'react-dropzone'
 import { useUploadDocumentMutation } from '../store/api'
 import { useAppDispatch } from '../hooks/redux'
 import { showNotification } from '../store/slices/uiSlice'
+import { useDocumentProcessing } from '../hooks/useDocumentProcessing'
+import DocumentProcessingPipeline from '../components/DocumentProcessingPipeline'
 
 interface UploadFile {
   file: File
@@ -53,6 +55,14 @@ const UploadPage: React.FC = () => {
   })
   const [showResultModal, setShowResultModal] = useState(false)
   const [selectedResult, setSelectedResult] = useState<any>(null)
+  
+  // Processing pipeline integration
+  const { 
+    processingDocuments, 
+    addDocumentToProcessing, 
+    retryProcessing, 
+    cancelProcessing 
+  } = useDocumentProcessing()
 
   const onDrop = useCallback((acceptedFiles: any[]) => {
     const newFiles = acceptedFiles.map((file: any) => ({
@@ -141,12 +151,22 @@ const UploadPage: React.FC = () => {
           )
         )
 
+        // Add document to processing pipeline visualization
+        if (response.uuid) {
+          addDocumentToProcessing(
+            response.uuid,
+            uploadFile.file.name,
+            uploadFile.file.type || 'unknown',
+            uploadFile.file.size
+          )
+        }
+
         setSelectedResult(response)
         setShowResultModal(true)
 
         dispatch(
           showNotification({
-            message: `${uploadFile.file.name} uploaded successfully`,
+            message: `${uploadFile.file.name} uploaded successfully - processing started`,
             severity: 'success',
           })
         )
@@ -367,6 +387,22 @@ const UploadPage: React.FC = () => {
           </Alert>
         </Grid>
       </Grid>
+
+      {/* Real-time Processing Pipeline */}
+      {processingDocuments.length > 0 && (
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+            🔄 Processing Pipeline - Real-time Status
+          </Typography>
+          <Paper sx={{ p: 2, borderRadius: 3 }}>
+            <DocumentProcessingPipeline
+              documents={processingDocuments}
+              onRetry={retryProcessing}
+              onCancel={cancelProcessing}
+            />
+          </Paper>
+        </Box>
+      )}
 
       {/* Result Modal */}
       <Dialog
