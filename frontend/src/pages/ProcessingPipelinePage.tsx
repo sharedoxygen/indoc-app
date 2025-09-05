@@ -25,6 +25,9 @@ import { useDocumentProcessing } from '../hooks/useDocumentProcessing';
 import { createDefaultPipelineSteps } from '../components/DocumentProcessingPipeline';
 
 const ProcessingPipelinePage: React.FC = () => {
+    // Temporarily simplify to debug the issue
+    console.log('ProcessingPipelinePage rendering...');
+    
     const {
         processingDocuments,
         retryProcessing,
@@ -67,6 +70,26 @@ const ProcessingPipelinePage: React.FC = () => {
             startTime: new Date(Date.now() - 45000) // 45 seconds ago
         }];
     };
+
+    // Simple debug return first
+    if (true) {
+        return (
+            <Box sx={{ p: 3 }}>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
+                    🔄 Processing Pipeline Debug
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                    Page is loading... Stats: {JSON.stringify(stats)}
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                    Connected: {isConnected ? 'Yes' : 'No'}
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                    Processing Documents: {processingDocuments.length}
+                </Typography>
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ p: 3 }}>
