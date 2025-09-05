@@ -128,7 +128,7 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
         const diff = now.getTime() - startTime.getTime();
         const seconds = Math.floor(diff / 1000);
         const minutes = Math.floor(seconds / 60);
-        
+
         if (minutes > 0) {
             return `${minutes}m ${seconds % 60}s`;
         }
@@ -140,20 +140,22 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
                 📊 Document Processing Pipeline
             </Typography>
-            
+
             {documents.map((doc) => {
                 const isExpanded = expandedDocs.has(doc.documentId);
                 const overallProgress = getOverallProgress(doc);
                 const currentStepIndex = doc.steps.findIndex(s => s.status === 'processing');
-                
+
                 return (
-                    <Card 
+                    <Card
                         key={doc.documentId}
-                        sx={{ 
-                            mb: 2, 
+                        sx={{
+                            mb: 2,
                             animation: `${slideIn} 0.5s ease-out`,
                             border: doc.status === 'processing' ? '2px solid' : '1px solid',
-                            borderColor: doc.status === 'processing' ? 'primary.main' : 'divider'
+                            borderColor: doc.status === 'processing' ? 'primary.main' : 'divider',
+                            overflow: 'hidden', // Prevent animation bleeding
+                            position: 'relative'
                         }}
                     >
                         <CardContent>
@@ -162,7 +164,7 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
                                 <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
                                     {doc.fileType.toUpperCase().slice(0, 2)}
                                 </Avatar>
-                                
+
                                 <Box sx={{ flexGrow: 1 }}>
                                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                         {doc.filename}
@@ -171,15 +173,15 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
                                         {(doc.fileSize / 1024 / 1024).toFixed(2)} MB • {formatDuration(doc.startTime)}
                                     </Typography>
                                 </Box>
-                                
+
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Chip 
+                                    <Chip
                                         label={doc.status.toUpperCase()}
                                         color={getStatusColor(doc.status) as any}
                                         size="small"
                                         icon={doc.status === 'processing' ? <ProcessingIcon /> : undefined}
                                     />
-                                    
+
                                     <IconButton onClick={() => toggleExpanded(doc.documentId)}>
                                         {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
                                     </IconButton>
@@ -189,44 +191,90 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
                             {/* Overall Progress */}
                             <Box sx={{ mb: 2 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography variant="body2" color="text.secondary">
+                                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                                         Overall Progress
                                     </Typography>
-                                    <Typography variant="body2" color="text.secondary">
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            fontWeight: 700,
+                                            color: overallProgress === 100 ? 'success.main' : 'primary.main',
+                                            textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                            fontSize: '1.1rem'
+                                        }}
+                                    >
                                         {Math.round(overallProgress)}%
                                     </Typography>
                                 </Box>
-                                <LinearProgress 
-                                    variant="determinate" 
-                                    value={overallProgress}
-                                    sx={{ 
-                                        height: 8, 
-                                        borderRadius: 4,
-                                        bgcolor: 'grey.200',
-                                        '& .MuiLinearProgress-bar': {
-                                            borderRadius: 4
-                                        }
-                                    }}
-                                />
+                                <Box sx={{ position: 'relative' }}>
+                                    <LinearProgress
+                                        variant="determinate"
+                                        value={overallProgress}
+                                        sx={{
+                                            height: 12,
+                                            borderRadius: 6,
+                                            bgcolor: 'grey.300',
+                                            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
+                                            '& .MuiLinearProgress-bar': {
+                                                borderRadius: 6,
+                                                background: overallProgress === 100
+                                                    ? 'linear-gradient(90deg, #4CAF50, #81C784)'
+                                                    : 'linear-gradient(90deg, #1976d2, #42a5f5, #64b5f6)',
+                                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.4)'
+                                            }
+                                        }}
+                                    />
+                                    {/* Progress Glow Effect */}
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: '100%',
+                                            borderRadius: 6,
+                                            background: `linear-gradient(90deg, transparent ${Math.max(0, overallProgress - 10)}%, rgba(255,255,255,0.3) ${overallProgress}%, transparent ${Math.min(100, overallProgress + 10)}%)`,
+                                            pointerEvents: 'none'
+                                        }}
+                                    />
+                                </Box>
                             </Box>
 
                             {/* Current Step Highlight */}
                             {currentStepIndex >= 0 && (
-                                <Paper 
-                                    sx={{ 
-                                        p: 2, 
-                                        mb: 2, 
+                                <Paper
+                                    sx={{
+                                        p: 2,
+                                        mb: 2,
                                         bgcolor: 'primary.50',
                                         border: '1px solid',
                                         borderColor: 'primary.200',
-                                        animation: `${pulse} 3s infinite`
+                                        animation: `${pulse} 3s infinite`,
+                                        overflow: 'hidden',
+                                        position: 'relative'
                                     }}
                                 >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <CircularProgress size={24} />
-                                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                            Currently: {doc.steps[currentStepIndex].label}
-                                        </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <CircularProgress size={24} />
+                                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                                Currently: {doc.steps[currentStepIndex].label}
+                                            </Typography>
+                                        </Box>
+                                        <Chip
+                                            size="small"
+                                            color="primary"
+                                            variant="filled"
+                                            label="Auto Processing"
+                                            sx={{
+                                                fontSize: '0.75rem',
+                                                opacity: 0.9,
+                                                '&:hover': {
+                                                    opacity: 1,
+                                                    transition: 'opacity 0.3s ease',
+                                                }
+                                            }}
+                                        />
                                     </Box>
                                     {doc.steps[currentStepIndex].message && (
                                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -253,18 +301,18 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
                                                 error={step.status === 'failed'}
                                             >
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Typography 
-                                                        variant="body1" 
-                                                        sx={{ 
+                                                    <Typography
+                                                        variant="body1"
+                                                        sx={{
                                                             fontWeight: step.status === 'processing' ? 600 : 400,
                                                             color: step.status === 'failed' ? 'error.main' : 'text.primary'
                                                         }}
                                                     >
                                                         {step.label}
                                                     </Typography>
-                                                    
+
                                                     {step.status === 'processing' && step.progress !== undefined && (
-                                                        <Chip 
+                                                        <Chip
                                                             label={`${step.progress}%`}
                                                             size="small"
                                                             color="primary"
@@ -273,20 +321,20 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
                                                     )}
                                                 </Box>
                                             </StepLabel>
-                                            
+
                                             <StepContent>
                                                 {step.message && (
                                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                                                         {step.message}
                                                     </Typography>
                                                 )}
-                                                
+
                                                 {step.details && step.details.length > 0 && (
                                                     <Box sx={{ ml: 2 }}>
                                                         {step.details.map((detail, idx) => (
-                                                            <Typography 
+                                                            <Typography
                                                                 key={idx}
-                                                                variant="caption" 
+                                                                variant="caption"
                                                                 display="block"
                                                                 color="text.secondary"
                                                             >
@@ -295,10 +343,10 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
                                                         ))}
                                                     </Box>
                                                 )}
-                                                
+
                                                 {step.status === 'processing' && step.progress !== undefined && (
-                                                    <LinearProgress 
-                                                        variant="determinate" 
+                                                    <LinearProgress
+                                                        variant="determinate"
                                                         value={step.progress}
                                                         sx={{ mt: 1, width: 200 }}
                                                     />

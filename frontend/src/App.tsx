@@ -21,8 +21,7 @@ import DashboardPage from './pages/DashboardPage'
 // import AnalyticsPage from './pages/AnalyticsPage'
 import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
-import ProcessingQueuePage from './pages/ProcessingQueuePage'
-import ProcessingPipelinePage from './pages/ProcessingPipelinePage'
+import DocumentProcessingPage from './pages/DocumentProcessingPage'
 
 // Components
 import PrivateRoute from './components/PrivateRoute'
@@ -65,8 +64,10 @@ function App() {
             <Route path="/audit" element={<AuditTrailPage />} />
             <Route path="/users" element={<RoleManagementPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/processing-queue" element={<ProcessingQueuePage />} />
-            <Route path="/processing-pipeline" element={<ProcessingPipelinePage />} />
+            <Route path="/document-processing" element={<DocumentProcessingPage />} />
+            {/* Legacy redirects */}
+            <Route path="/processing-queue" element={<Navigate to="/document-processing" />} />
+            <Route path="/processing-pipeline" element={<Navigate to="/document-processing" />} />
           </Route>
         </Route>
 
