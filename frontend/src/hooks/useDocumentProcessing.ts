@@ -42,7 +42,9 @@ export const useDocumentProcessing = () => {
     // Initialize WebSocket connection for real-time updates
     useEffect(() => {
         const connectWebSocket = () => {
-            const websocket = new WebSocket(`ws://localhost:8000/ws/processing`);
+            // Get JWT token from localStorage or Redux store
+            const token = localStorage.getItem('token') || '';
+            const websocket = new WebSocket(`ws://localhost:8000/ws/processing?token=${token}`);
             
             websocket.onopen = () => {
                 console.log('📡 Processing WebSocket connected');

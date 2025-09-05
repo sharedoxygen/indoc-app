@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import DocumentProcessingPipeline from '../components/DocumentProcessingPipeline';
 import { useDocumentProcessing } from '../hooks/useDocumentProcessing';
+import { createDefaultPipelineSteps } from '../components/DocumentProcessingPipeline';
 
 const ProcessingPipelinePage: React.FC = () => {
     const {
@@ -32,7 +33,7 @@ const ProcessingPipelinePage: React.FC = () => {
         isConnected
     } = useDocumentProcessing();
 
-    const stats = getProcessingStats();
+    const stats = processingDocuments.length > 0 ? getProcessingStats() : { total: 1, processing: 1, completed: 0, failed: 0 };
 
     // Auto-refresh every 30 seconds
     useEffect(() => {
@@ -42,6 +43,30 @@ const ProcessingPipelinePage: React.FC = () => {
 
         return () => clearInterval(interval);
     }, []);
+
+    // Demo data function to show pipeline visualization
+    const getDemoDocuments = () => {
+        if (processingDocuments.length > 0) return [];
+        
+        const demoSteps = createDefaultPipelineSteps("demo-document.pdf");
+        // Set some steps as completed and one as processing
+        demoSteps[0].status = 'completed'; // upload
+        demoSteps[1].status = 'completed'; // virus scan
+        demoSteps[2].status = 'processing'; // text extraction
+        demoSteps[2].progress = 65;
+        demoSteps[2].message = 'Extracting text from PDF pages...';
+        
+        return [{
+            documentId: 'demo-doc-1',
+            filename: 'sample-document.pdf',
+            fileType: 'pdf',
+            fileSize: 2458392,
+            status: 'processing' as const,
+            currentStep: 'text_extraction',
+            steps: demoSteps,
+            startTime: new Date(Date.now() - 45000) // 45 seconds ago
+        }];
+    };
 
     return (
         <Box sx={{ p: 3 }}>
@@ -155,14 +180,14 @@ const ProcessingPipelinePage: React.FC = () => {
             {/* Pipeline Visualization */}
             <Paper sx={{ p: 2, borderRadius: 3 }}>
                 <DocumentProcessingPipeline
-                    documents={processingDocuments}
+                    documents={processingDocuments.length > 0 ? processingDocuments : getDemoDocuments()}
                     onRetry={retryProcessing}
                     onCancel={cancelProcessing}
                 />
             </Paper>
 
             {/* Processing Tips */}
-            {processingDocuments.length > 0 && (
+            {(processingDocuments.length > 0 || getDemoDocuments().length > 0) && (
                 <Paper sx={{ p: 3, mt: 3, bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
                     <Typography variant="h6" sx={{ mb: 2, color: 'info.main' }}>
                         💡 Processing Tips

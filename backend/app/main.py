@@ -9,6 +9,7 @@ import logging
 
 from app.core.config import settings
 from app.api.v1.api import api_router
+from app.api.v1.endpoints.processing_websocket import router as processing_ws_router
 from app.db.session import async_engine
 from app.models.base import Base
 from app.middleware.audit import AuditMiddleware
@@ -79,6 +80,9 @@ if settings.ENABLE_TELEMETRY:
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_PREFIX)
+
+# Include WebSocket router
+app.include_router(processing_ws_router)
 
 # Prometheus metrics endpoint
 app.add_api_route(f"{settings.API_PREFIX}/metrics", metrics_endpoint, methods=["GET"], tags=["Monitoring"])

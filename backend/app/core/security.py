@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.user import User
+from app.db.session import AsyncSessionLocal
 from app.db.session import get_db
 
 
@@ -148,3 +149,21 @@ require_reviewer = RBACChecker(["Admin", "Reviewer"])
 require_uploader = RBACChecker(["Admin", "Reviewer", "Uploader"])
 require_viewer = RBACChecker(["Admin", "Reviewer", "Uploader", "Viewer"])
 require_compliance = RBACChecker(["Admin", "Compliance"])
+
+
+async def get_current_user_websocket(token: str) -> Optional[User]:
+    """
+    Get current user from JWT token for WebSocket connections
+    """
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+    
+    async with AsyncSessionLocal() as db:
+        from app.crud.user import get_user_by_id
+        user = await get_user_by_id(db, int(user_id))
+        return user
