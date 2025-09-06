@@ -20,14 +20,21 @@ inDoc transforms how you interact with documents through natural conversation. A
 
 ### ✨ **Key Capabilities**
 
-- 🤖 **AI-Powered Document Intelligence** - Chat with your documents using advanced LLMs
-- 🏢 **Multi-Tenant Architecture** - Complete tenant isolation for enterprise deployments  
-- 🔐 **Enterprise Security** - Field-level encryption, audit logging, HIPAA/PCI compliance
-- 🔍 **Intelligent Search** - Elasticsearch & Weaviate integration for semantic search
-- 📄 **Universal Document Support** - PDF, DOCX, TXT, email ingestion, and more
-- ⚡ **Real-Time Processing** - Async document processing pipeline with WebSocket support
-- 📊 **Advanced Analytics** - Built-in monitoring, metrics, and observability
-- 🚀 **Production Ready** - Docker containerization, horizontal scaling, CI/CD ready
+#### **Available Now**
+- 🤖 **AI-Powered Conversations** - Chat naturally with your documents using Ollama LLMs
+- 📄 **Multi-Document Chat** - Query across multiple documents simultaneously
+- 🔐 **Enterprise Security** - Field-level encryption, comprehensive audit logging, RBAC
+- 🏢 **Multi-Tenant Ready** - Complete tenant isolation for enterprise deployments
+- 🔍 **Semantic Search** - Elasticsearch & Weaviate integration for intelligent retrieval
+- 📁 **Document Processing** - PDF, DOCX, TXT with text extraction and chunking
+- ⚡ **Real-Time Updates** - WebSocket support for live conversations
+- 🚀 **Production Ready** - Docker deployment, async processing, scalable architecture
+
+#### **Coming Soon**
+- 🔮 **Proactive Insights** - Auto-discover patterns and contradictions
+- 🏥 **HIPAA/PCI Compliance Modes** - Dedicated healthcare and financial compliance
+- 📊 **Conversation Analytics** - Usage patterns and document heat maps
+- 👥 **Team Collaboration** - Shared conversations and annotations
 
 ---
 
@@ -189,14 +196,21 @@ POST /api/v1/chat/conversations
 4. **Index** → Multi-vector embedding and search index creation
 5. **Query** → Semantic search and AI-powered responses
 
-### 🔐 **Enterprise Security**
+### 🔐 **Enterprise Security** 
 
-- **🔒 Field-Level Encryption** - Sensitive data encrypted at rest
-- **🎫 JWT Authentication** - Secure API access with refresh tokens
-- **👥 Multi-Tenant Isolation** - Complete data separation per tenant
-- **📋 Comprehensive Audit Logging** - All actions tracked and logged
-- **🛡️ Rate Limiting** - Protection against abuse and DDoS
-- **🦠 Virus Scanning** - All uploads scanned before processing
+#### **Implemented Security Features**
+- **🔒 Field-Level Encryption** - AES-256 encryption for sensitive data fields
+- **🎫 JWT Authentication** - Secure token-based API access
+- **👥 Multi-Tenant Isolation** - Complete data separation with tenant_id
+- **📋 Comprehensive Audit Logging** - Every action tracked with user, timestamp, and details
+- **👤 Role-Based Access Control** - Admin, Reviewer, Uploader, Viewer, Compliance roles
+- **🦠 File Validation** - Type checking and size limits on uploads
+
+#### **Security Roadmap**
+- **🏥 HIPAA Compliance Mode** - PHI protection and BAA support (planned)
+- **💳 PCI DSS Mode** - Credit card data handling (planned)
+- **🛡️ Advanced Rate Limiting** - Per-user and per-endpoint limits (planned)
+- **🔍 PII Auto-Redaction** - Automatic sensitive data detection (planned)
 
 ### 🔍 **Advanced Search Capabilities**
 
