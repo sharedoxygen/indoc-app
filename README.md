@@ -1,8 +1,8 @@
-# 🚀 inDoc - Intelligent Document Management Platform
+# 🚀 inDoc - Conversational Document Intelligence
 
 <div align="center">
 
-**Enterprise-grade AI-powered document management with intelligent search and conversation capabilities**
+**Conversational Document Intelligence - Chat naturally with your documents using advanced AI**
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg?style=flat&logo=FastAPI)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg?style=flat&logo=react)](https://reactjs.org/)
@@ -16,7 +16,7 @@
 
 ## 🌟 **Overview**
 
-inDoc is a cutting-edge, enterprise-ready intelligent document management platform that transforms how organizations handle, search, and interact with their documents. Built with security-first principles and powered by advanced AI, inDoc enables natural language conversations with your documents while maintaining enterprise-grade compliance and multi-tenant isolation.
+inDoc transforms how you interact with documents through natural conversation. Ask questions, get insights, and discover information across your document library using advanced AI - no more endless scrolling or keyword hunting. Built with enterprise security and powered by state-of-the-art language models, inDoc makes your documents truly intelligent and accessible.
 
 ### ✨ **Key Capabilities**
 
