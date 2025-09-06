@@ -90,6 +90,9 @@ data/uploads/
 data/temp/
 uploads/
 
+# Documentation (internal development docs)
+docs/
+
 # Database
 *.db
 *.sqlite
