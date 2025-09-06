@@ -574,7 +574,7 @@ inDoc is built with amazing open-source technologies:
 
 <div align="center">
 
-**Made with ❤️ by the inDoc Team**
+**Made with ❤️ by Shared Oxygen, LLC**
 
 ⭐ **Star this repository if you find it useful!** ⭐
 
