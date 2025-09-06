@@ -487,7 +487,7 @@ services:
 
 ## 🤝 **Contributing**
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+We welcome contributions! Please follow these guidelines when contributing to the project.
 
 ### Development Workflow
 
@@ -531,10 +531,10 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ### 📚 **Documentation**
 
-- [API Reference](https://api.indoc.dev/docs)
-- [Deployment Guide](https://docs.indoc.dev/deployment)  
-- [Security Guide](https://docs.indoc.dev/security)
-- [Developer Guide](https://docs.indoc.dev/developers)
+- **API Reference** - Interactive API docs available at `/docs` when running the application
+- **Quick Start** - See Docker deployment section above for fastest setup
+- **Configuration** - Environment variables and settings documented above
+- **Architecture** - System design diagram and component overview above
 
 ### 🐛 **Issue Reporting**
 
@@ -555,7 +555,7 @@ Found a bug? Please create an issue with:
 
 ## 📄 **License**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is open source. Please check the repository for licensing details.
 
 ---
 
@@ -576,6 +576,6 @@ inDoc is built with amazing open-source technologies:
 
 **Made with ❤️ by the inDoc Team**
 
-[Website](https://indoc.dev) • [Documentation](https://docs.indoc.dev) • [API](https://api.indoc.dev) • [Support](mailto:support@indoc.dev)
+⭐ **Star this repository if you find it useful!** ⭐
 
 </div>
