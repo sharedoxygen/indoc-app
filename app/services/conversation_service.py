@@ -23,6 +23,7 @@ from app.schemas.conversation import (
 from app.core.config import settings
 from app.mcp.client import MCPClient
 from app.services.search_service import SearchService
+from app.core.compliance import compliance_manager, ComplianceMode
 
 
 class ConversationService:
@@ -199,6 +200,27 @@ class ConversationService:
             chat_request.message
         )
         
+        # Compliance check on user message
+        compliance_scan = compliance_manager.phi_detector.scan_text(
+            chat_request.message, 
+            compliance_manager.current_mode
+        )
+        
+        # Log PHI detection if found
+        if compliance_scan["phi_found"]:
+            logger.warning(f"PHI detected in user message for conversation {conversation.id}: "
+                         f"{compliance_scan['high_sensitivity_count']} high-sensitivity items")
+            
+            # Add compliance metadata to conversation
+            compliance_metadata = conversation.metadata or {}
+            compliance_metadata.update({
+                "phi_detected": True,
+                "compliance_mode": compliance_manager.current_mode.value,
+                "last_phi_detection": datetime.utcnow().isoformat()
+            })
+            conversation.metadata = compliance_metadata
+            self.db.commit()
+        
         # Get conversation context
         context = await self._build_conversation_context(
             conversation,
@@ -212,12 +234,49 @@ class ConversationService:
             chat_request.stream
         )
         
+        # Compliance check on assistant response
+        response_compliance_scan = compliance_manager.phi_detector.scan_text(
+            response_content,
+            compliance_manager.current_mode
+        )
+        
+        # Apply redaction if PHI detected and compliance mode requires it
+        final_response_content = response_content
+        compliance_metadata = {"context_used": bool(context)}
+        
+        if response_compliance_scan["phi_found"]:
+            logger.warning(f"PHI detected in assistant response for conversation {conversation.id}: "
+                         f"{response_compliance_scan['high_sensitivity_count']} high-sensitivity items")
+            
+            # Apply auto-redaction in strict compliance modes
+            if compliance_manager.current_mode in [ComplianceMode.HIPAA, ComplianceMode.MAXIMUM]:
+                final_response_content = response_compliance_scan["redacted_text"]
+                compliance_metadata.update({
+                    "phi_redacted": True,
+                    "redactions_applied": len(response_compliance_scan["detections"]),
+                    "compliance_scan": {
+                        "phi_found": True,
+                        "detections_count": len(response_compliance_scan["detections"])
+                    }
+                })
+                logger.info(f"Auto-redacted PHI in response for conversation {conversation.id}")
+            else:
+                # Just flag for manual review
+                compliance_metadata.update({
+                    "phi_detected": True,
+                    "manual_review_required": True,
+                    "compliance_scan": {
+                        "phi_found": True,
+                        "detections_count": len(response_compliance_scan["detections"])
+                    }
+                })
+        
         # Add assistant message
         assistant_message = await self.add_message(
             conversation.id,
             "assistant",
-            response_content,
-            metadata={"context_used": bool(context)}
+            final_response_content,
+            metadata=compliance_metadata
         )
         
         return ChatResponse(
