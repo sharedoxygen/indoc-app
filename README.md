@@ -8,7 +8,7 @@
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg?style=flat&logo=react)](https://reactjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1.svg?style=flat&logo=postgresql)](https://postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=flat&logo=docker)](https://www.docker.com/)
-[![Security](https://img.shields.io/badge/Security-HIPAA%20%7C%20PCI-red.svg?style=flat&logo=shield)](https://hipaa.com/)
+[![Security](https://img.shields.io/badge/Security-HIPAA%20%7C%20PCI-green.svg?style=flat&logo=shield)](https://hipaa.com/)
 
 </div>
 
