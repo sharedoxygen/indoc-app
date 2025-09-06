@@ -3,6 +3,7 @@ File management endpoints
 """
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func, String
 import hashlib
@@ -278,6 +279,74 @@ async def get_document(
     return DocumentResponse.from_orm(document)
 
 
+@router.post("/scan_all", summary="Trigger virus scan for all documents")
+async def scan_all_documents(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Enqueue virus scan Celery tasks for every document not yet marked clean."""
+    # Find all documents pending or errored for virus scanning
+    result = await db.execute(
+        select(Document).where(Document.virus_scan_status != "clean")
+    )
+    docs = result.scalars().all()
+    from app.tasks.document import process_document
+
+    count = 0
+    for doc in docs:
+        process_document.delay(str(doc.uuid))
+        count += 1
+
+    return {"enqueued": count, "total": len(docs)}
+
+
+@router.post("/scan_virus/{document_id}")
+async def manual_virus_scan(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Manually trigger virus scan for a specific document"""
+    result = await db.execute(select(Document).where(Document.uuid == document_id))
+    document = result.scalar_one_or_none()
+    
+    if not document:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    
+    user_role_value = getattr(current_user.role, "value", current_user.role)
+    if user_role_value not in ["Admin", "Reviewer"] and document.uploaded_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    # Check if file exists
+    storage_path = Path(document.storage_path)
+    if not storage_path.exists():
+        # Try alternative path
+        alt_path = Path(f"data/storage/{storage_path.name}")
+        if alt_path.exists():
+            document.storage_path = str(alt_path)
+            await db.commit()
+            storage_path = alt_path
+        else:
+            document.virus_scan_status = "error"
+            document.error_message = f"File not found: {document.storage_path}"
+            await db.commit()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File not found on disk")
+    
+    # Run virus scan
+    try:
+        scanner = VirusScanner()
+        scan_result = scanner.scan_file_sync(storage_path)
+        document.virus_scan_status = scan_result.get("status", "error")
+        await db.commit()
+        
+        return {"ok": True, "scan_result": scan_result, "virus_status": document.virus_scan_status}
+    except Exception as e:
+        document.virus_scan_status = "error"
+        document.error_message = f"Virus scan failed: {str(e)}"
+        await db.commit()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 @router.put("/{document_id}", response_model=DocumentResponse)
 async def update_document(
     document_id: str,
@@ -445,3 +514,99 @@ async def retry_document(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/cancel/{document_id}")
+async def cancel_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Cancel processing for a document (mark as failed)."""
+    result = await db.execute(select(Document).where(Document.uuid == document_id))
+    document = result.scalar_one_or_none()
+    if not document:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    user_role_value = getattr(current_user.role, "value", current_user.role)
+    if user_role_value not in ["Admin", "Reviewer"] and document.uploaded_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    document.status = "failed"
+    document.error_message = "Cancelled by user"
+    await db.commit()
+
+    audit_log = AuditLog(
+        user_id=current_user.id,
+        user_email=current_user.email,
+        user_role=user_role_value,
+        action="cancel",
+        resource_type="document",
+        resource_id=str(document.uuid)
+    )
+    db.add(audit_log)
+    await db.commit()
+
+    return {"ok": True}
+
+
+@router.get("/download/{document_id}")
+async def download_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> FileResponse:
+    """Download a document file"""
+    # Get document
+    result = await db.execute(
+        select(Document).where(Document.uuid == document_id)
+    )
+    document = result.scalar_one_or_none()
+    
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+    
+    # Check access
+    user_role_value = getattr(current_user.role, "value", current_user.role)
+    if user_role_value not in ["Admin", "Reviewer"] and document.uploaded_by != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    # Check if file exists
+    file_path = Path(document.storage_path)
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found on disk"
+        )
+    
+    # Log download
+    audit_log = AuditLog(
+        user_id=current_user.id,
+        user_email=current_user.email,
+        user_role=user_role_value,
+        action="download",
+        resource_type="document",
+        resource_id=str(document.uuid)
+    )
+    db.add(audit_log)
+    await db.commit()
+    
+    # Return file with correct media type
+    if document.file_type in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp']:
+        media_type = f"image/{document.file_type}"
+    elif document.file_type == 'pdf':
+        media_type = "application/pdf"
+    else:
+        media_type = "application/octet-stream"
+    
+    return FileResponse(
+        path=file_path,
+        filename=document.filename,
+        media_type=media_type
+    )

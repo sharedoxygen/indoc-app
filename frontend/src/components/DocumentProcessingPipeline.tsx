@@ -33,12 +33,7 @@ import {
 } from '@mui/icons-material';
 import { keyframes } from '@mui/system';
 
-// Animation for processing steps
-const pulse = keyframes`
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 1; }
-`;
+// Remove pulse keyframes definition
 
 const slideIn = keyframes`
   0% { transform: translateX(-20px); opacity: 0; }
@@ -100,11 +95,7 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
             return <ErrorIcon sx={{ color: 'error.main' }} />;
         }
         if (step.status === 'processing') {
-            return (
-                <Box sx={{ animation: `${pulse} 2s infinite` }}>
-                    {step.icon}
-                </Box>
-            );
+            return step.icon;
         }
         return step.icon;
     };
@@ -147,226 +138,202 @@ const DocumentProcessingPipeline: React.FC<DocumentProcessingPipelineProps> = ({
                 const currentStepIndex = doc.steps.findIndex(s => s.status === 'processing');
 
                 return (
-                    <Card
+                    <Paper
                         key={doc.documentId}
                         sx={{
-                            mb: 2,
-                            animation: `${slideIn} 0.5s ease-out`,
-                            border: doc.status === 'processing' ? '2px solid' : '1px solid',
+                            mb: 1.5,
+                            p: 2,
+                            border: '1px solid',
                             borderColor: doc.status === 'processing' ? 'primary.main' : 'divider',
-                            overflow: 'hidden', // Prevent animation bleeding
-                            position: 'relative'
+                            bgcolor: 'background.paper',
+                            transition: 'border-color 0.2s ease'
                         }}
                     >
-                        <CardContent>
-                            {/* Document Header */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                                    {doc.fileType.toUpperCase().slice(0, 2)}
-                                </Avatar>
-
-                                <Box sx={{ flexGrow: 1 }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                        {doc.filename}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {(doc.fileSize / 1024 / 1024).toFixed(2)} MB • {formatDuration(doc.startTime)}
-                                    </Typography>
-                                </Box>
-
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Chip
-                                        label={doc.status.toUpperCase()}
-                                        color={getStatusColor(doc.status) as any}
-                                        size="small"
-                                        icon={doc.status === 'processing' ? <ProcessingIcon /> : undefined}
-                                    />
-
-                                    <IconButton onClick={() => toggleExpanded(doc.documentId)}>
-                                        {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
-                                    </IconButton>
-                                </Box>
-                            </Box>
-
-                            {/* Overall Progress */}
-                            <Box sx={{ mb: 2 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                        Overall Progress
-                                    </Typography>
-                                    <Typography
-                                        variant="h6"
-                                        sx={{
-                                            fontWeight: 700,
-                                            color: overallProgress === 100 ? 'success.main' : 'primary.main',
-                                            textShadow: '0 1px 3px rgba(0,0,0,0.3)',
-                                            fontSize: '1.1rem'
-                                        }}
-                                    >
-                                        {Math.round(overallProgress)}%
-                                    </Typography>
-                                </Box>
-                                <Box sx={{ position: 'relative' }}>
-                                    <LinearProgress
-                                        variant="determinate"
-                                        value={overallProgress}
-                                        sx={{
-                                            height: 12,
-                                            borderRadius: 6,
-                                            bgcolor: 'grey.300',
-                                            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
-                                            '& .MuiLinearProgress-bar': {
-                                                borderRadius: 6,
-                                                background: overallProgress === 100
-                                                    ? 'linear-gradient(90deg, #4CAF50, #81C784)'
-                                                    : 'linear-gradient(90deg, #1976d2, #42a5f5, #64b5f6)',
-                                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.4)'
-                                            }
-                                        }}
-                                    />
-                                    {/* Progress Glow Effect */}
-                                    <Box
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            height: '100%',
-                                            borderRadius: 6,
-                                            background: `linear-gradient(90deg, transparent ${Math.max(0, overallProgress - 10)}%, rgba(255,255,255,0.3) ${overallProgress}%, transparent ${Math.min(100, overallProgress + 10)}%)`,
-                                            pointerEvents: 'none'
-                                        }}
-                                    />
-                                </Box>
-                            </Box>
-
-                            {/* Current Step Highlight */}
-                            {currentStepIndex >= 0 && (
-                                <Paper
+                        {/* Compact Document Header */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
+                                <Box
                                     sx={{
-                                        p: 2,
-                                        mb: 2,
-                                        bgcolor: 'primary.50',
-                                        border: '1px solid',
-                                        borderColor: 'primary.200',
-                                        animation: `${pulse} 3s infinite`,
-                                        overflow: 'hidden',
-                                        position: 'relative'
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 1,
+                                        bgcolor: 'primary.main',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600
                                     }}
                                 >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <CircularProgress size={24} />
-                                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                                Currently: {doc.steps[currentStepIndex].label}
-                                            </Typography>
-                                        </Box>
-                                        <Chip
-                                            size="small"
-                                            color="primary"
-                                            variant="filled"
-                                            label="Auto Processing"
-                                            sx={{
-                                                fontSize: '0.75rem',
-                                                opacity: 0.9,
-                                                '&:hover': {
-                                                    opacity: 1,
-                                                    transition: 'opacity 0.3s ease',
-                                                }
-                                            }}
-                                        />
-                                    </Box>
-                                    {doc.steps[currentStepIndex].message && (
-                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                            {doc.steps[currentStepIndex].message}
-                                        </Typography>
-                                    )}
-                                </Paper>
-                            )}
+                                    {doc.fileType.toUpperCase().slice(0, 2)}
+                                </Box>
 
-                            {/* Detailed Steps */}
-                            <Collapse in={isExpanded}>
-                                <Stepper orientation="vertical" sx={{ mt: 2 }}>
-                                    {doc.steps.map((step, index) => (
-                                        <Step key={step.id} active={step.status !== 'pending'} completed={step.status === 'completed'}>
-                                            <StepLabel
-                                                icon={
-                                                    <Badge
-                                                        badgeContent={step.status === 'processing' ? <CircularProgress size={12} /> : null}
-                                                        overlap="circular"
-                                                    >
-                                                        {getStepIcon(step)}
-                                                    </Badge>
-                                                }
-                                                error={step.status === 'failed'}
-                                            >
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Typography
-                                                        variant="body1"
-                                                        sx={{
-                                                            fontWeight: step.status === 'processing' ? 600 : 400,
-                                                            color: step.status === 'failed' ? 'error.main' : 'text.primary'
-                                                        }}
-                                                    >
-                                                        {step.label}
-                                                    </Typography>
+                                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.875rem', mb: 0.25 }}>
+                                        {doc.filename}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                                        {(doc.fileSize / 1024 / 1024).toFixed(1)} MB • {formatDuration(doc.startTime)}
+                                    </Typography>
+                                </Box>
+                            </Box>
 
-                                                    {step.status === 'processing' && step.progress !== undefined && (
-                                                        <Chip
-                                                            label={`${step.progress}%`}
-                                                            size="small"
-                                                            color="primary"
-                                                            variant="outlined"
-                                                        />
-                                                    )}
-                                                </Box>
-                                            </StepLabel>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Chip
+                                    label={doc.status.replace('_', ' ').toUpperCase()}
+                                    color={getStatusColor(doc.status) as any}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ fontSize: '0.6875rem', height: 24 }}
+                                />
+                                {onRetry && (doc.status === 'failed' || doc.status === 'uploaded') && (
+                                    <Chip size="small" label="Retry" onClick={() => onRetry(doc.documentId)} variant="outlined" color="primary" sx={{ fontSize: '0.6875rem', height: 24 }} />
+                                )}
+                                {onCancel && doc.status === 'processing' && (
+                                    <Chip size="small" label="Cancel" onClick={() => onCancel(doc.documentId)} variant="outlined" color="error" sx={{ fontSize: '0.6875rem', height: 24 }} />
+                                )}
+                                <IconButton size="small" onClick={() => toggleExpanded(doc.documentId)}>
+                                    {isExpanded ? <CollapseIcon fontSize="small" /> : <ExpandIcon fontSize="small" />}
+                                </IconButton>
+                            </Box>
+                        </Box>
 
-                                            <StepContent>
-                                                {step.message && (
-                                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                                        {step.message}
-                                                    </Typography>
-                                                )}
+                        {/* Compact Progress Bar */}
+                        <Box sx={{ mb: 1.5 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                                <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
+                                    PROGRESS
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 600, color: overallProgress === 100 ? 'success.main' : 'primary.main' }}>
+                                    {Math.round(overallProgress)}%
+                                </Typography>
+                            </Box>
+                            <LinearProgress
+                                variant="determinate"
+                                value={overallProgress}
+                                sx={{
+                                    height: 6,
+                                    borderRadius: 3,
+                                    bgcolor: 'grey.200',
+                                    '& .MuiLinearProgress-bar': {
+                                        borderRadius: 3,
+                                        bgcolor: overallProgress === 100 ? 'success.main' : 'primary.main'
+                                    }
+                                }}
+                            />
+                        </Box>
 
-                                                {step.details && step.details.length > 0 && (
-                                                    <Box sx={{ ml: 2 }}>
-                                                        {step.details.map((detail, idx) => (
-                                                            <Typography
-                                                                key={idx}
-                                                                variant="caption"
-                                                                display="block"
-                                                                color="text.secondary"
-                                                            >
-                                                                • {detail}
-                                                            </Typography>
-                                                        ))}
-                                                    </Box>
-                                                )}
+                        {/* Current Step - Inline */}
+                        {currentStepIndex >= 0 && (
+                            <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.5,
+                                p: 1.5,
+                                bgcolor: 'action.hover',
+                                borderRadius: 1,
+                                border: '1px solid',
+                                borderColor: 'primary.main',
+                                mb: 1.5
+                            }}>
+                                <CircularProgress size={16} color="primary" />
+                                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                                    {doc.steps[currentStepIndex].label.replace(/[^A-Za-z\s]/g, '')}
+                                </Typography>
+                                <Box sx={{ flexGrow: 1 }} />
+                                <Chip
+                                    size="small"
+                                    label="AUTO"
+                                    variant="outlined"
+                                    color="primary"
+                                    sx={{ fontSize: '0.625rem', height: 20 }}
+                                />
+                            </Box>
+                        )}
+
+                        {/* Detailed Steps */}
+                        <Collapse in={isExpanded}>
+                            <Stepper orientation="vertical" sx={{ mt: 2 }}>
+                                {doc.steps.map((step, index) => (
+                                    <Step key={step.id} active={step.status !== 'pending'} completed={step.status === 'completed'}>
+                                        <StepLabel
+                                            icon={
+                                                <Badge
+                                                    badgeContent={step.status === 'processing' ? <CircularProgress size={12} /> : null}
+                                                    overlap="circular"
+                                                >
+                                                    {getStepIcon(step)}
+                                                </Badge>
+                                            }
+                                            error={step.status === 'failed'}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Typography
+                                                    variant="body1"
+                                                    sx={{
+                                                        fontWeight: step.status === 'processing' ? 600 : 400,
+                                                        color: step.status === 'failed' ? 'error.main' : 'text.primary'
+                                                    }}
+                                                >
+                                                    {step.label}
+                                                </Typography>
 
                                                 {step.status === 'processing' && step.progress !== undefined && (
-                                                    <LinearProgress
-                                                        variant="determinate"
-                                                        value={step.progress}
-                                                        sx={{ mt: 1, width: 200 }}
+                                                    <Chip
+                                                        label={`${step.progress}%`}
+                                                        size="small"
+                                                        color="primary"
+                                                        variant="outlined"
                                                     />
                                                 )}
-                                            </StepContent>
-                                        </Step>
-                                    ))}
-                                </Stepper>
-                            </Collapse>
+                                            </Box>
+                                        </StepLabel>
 
-                            {/* Error Message */}
-                            {doc.status === 'failed' && doc.errorMessage && (
-                                <Paper sx={{ p: 2, mt: 2, bgcolor: 'error.50', border: '1px solid', borderColor: 'error.200' }}>
-                                    <Typography variant="body2" color="error.main">
-                                        <strong>Error:</strong> {doc.errorMessage}
-                                    </Typography>
-                                </Paper>
-                            )}
-                        </CardContent>
-                    </Card>
+                                        <StepContent>
+                                            {step.message && (
+                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                    {step.message}
+                                                </Typography>
+                                            )}
+
+                                            {step.details && step.details.length > 0 && (
+                                                <Box sx={{ ml: 2 }}>
+                                                    {step.details.map((detail, idx) => (
+                                                        <Typography
+                                                            key={idx}
+                                                            variant="caption"
+                                                            display="block"
+                                                            color="text.secondary"
+                                                        >
+                                                            • {detail}
+                                                        </Typography>
+                                                    ))}
+                                                </Box>
+                                            )}
+
+                                            {step.status === 'processing' && step.progress !== undefined && (
+                                                <LinearProgress
+                                                    variant="determinate"
+                                                    value={step.progress}
+                                                    sx={{ mt: 1, width: 200 }}
+                                                />
+                                            )}
+                                        </StepContent>
+                                    </Step>
+                                ))}
+                            </Stepper>
+                        </Collapse>
+
+                        {/* Error Message */}
+                        {doc.status === 'failed' && doc.errorMessage && (
+                            <Paper sx={{ p: 2, mt: 2, bgcolor: 'error.50', border: '1px solid', borderColor: 'error.200' }}>
+                                <Typography variant="body2" color="error.main">
+                                    <strong>Error:</strong> {doc.errorMessage}
+                                </Typography>
+                            </Paper>
+                        )}
+                    </Paper>
                 );
             })}
 

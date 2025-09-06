@@ -56,6 +56,25 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
         document.status = "processing"
         self.db.commit()
         
+        # Adaptive timeout helpers
+        from datetime import datetime, timedelta
+        def compute_budgets(file_size_bytes: int, file_type: str):
+            size_mb = max(1, int(file_size_bytes / (1024 * 1024)))
+            # Base budgets (seconds)
+            if file_type.startswith("image/"):
+                soft, hard = 120 + 2 * size_mb, 180 + 3 * size_mb
+            elif file_type in ("application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"):
+                soft, hard = 60 + 1 * size_mb, 120 + 2 * size_mb
+            else:
+                soft, hard = 45 + size_mb, 90 + 2 * size_mb
+            # Clamp to sane bounds
+            soft = min(soft, 240)
+            hard = min(hard, 360)
+            return soft, hard
+
+        soft_limit_s, hard_limit_s = compute_budgets(document.file_size or 0, document.file_type or "")
+        step_started_at = datetime.utcnow()
+
         # Virus scan before extraction
         try:
             from app.services.virus_scanner import VirusScanner
@@ -71,18 +90,40 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
         except Exception as e:
             logger.warning(f"Virus scan error: {e}")
 
-        # Extract text (sync wrapper)
+        # Extract text (sync wrapper) - handle images gracefully
         text_service = TextExtractionService()
-        extracted = text_service.extract_text_sync(Path(document.storage_path))
         
-        if extracted and extracted.get("success"):
-            document.full_text = extracted.get("text", "")
+        # Check if this is an image file - skip text extraction for images
+        file_extension = Path(document.storage_path).suffix.lower().strip('.')
+        if file_extension in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']:
+            # Images don't have extractable text - mark as text_extracted with empty text
+            document.full_text = ""
             document.status = "text_extracted"
             self.db.commit()
+            logger.info(f"Skipped text extraction for image file: {document.filename}")
+        else:
+            # Regular text extraction for documents
+            extracted = text_service.extract_text_sync(Path(document.storage_path))
+            # Enforce adaptive hard limit per step
+            if datetime.utcnow() - step_started_at > timedelta(seconds=hard_limit_s):
+                document.status = "failed"
+                document.error_message = f"Processing timeout (> {hard_limit_s}s)"
+                self.db.commit()
+                return {"status": "error", "message": document.error_message}
             
-            # Index in search engines
-            from app.services.search.elasticsearch_service import ElasticsearchService
-            from app.services.search.weaviate_service import WeaviateService
+            if extracted and extracted.get("success"):
+                document.full_text = extracted.get("text", "")
+                document.status = "text_extracted"
+                self.db.commit()
+            else:
+                document.status = "failed"
+                document.error_message = extracted.get("error") if extracted else "Unknown extraction error"
+                self.db.commit()
+                return {"status": "error", "message": document.error_message}
+        
+        # Index in search engines (for both images and text documents)
+        from app.services.search.elasticsearch_service import ElasticsearchService
+        from app.services.search.weaviate_service import WeaviateService
             
             # Prepare metadata
             metadata = {
@@ -171,14 +212,33 @@ def batch_process_documents(self, document_ids: list) -> Dict[str, Any]:
 
 @celery_app.task(base=DocumentTask, bind=True, name="app.tasks.document.process_pending_documents")
 def process_pending_documents(self) -> Dict[str, Any]:
-    """Periodic task to process documents in 'uploaded' state."""
+    """Periodic task to enqueue documents awaiting processing.
+
+    Picks up both 'pending' and legacy 'uploaded' statuses and immediately
+    flips them to 'processing' to avoid duplicate task enqueues.
+    """
     try:
-        pending_docs = self.db.query(Document).filter(Document.status == "uploaded").limit(10).all()
+        pending_docs = (
+            self.db.query(Document)
+            .filter(Document.status.in_(["pending", "uploaded"]))
+            .limit(25)
+            .all()
+        )
+
         if not pending_docs:
             return {"status": "success", "message": "No pending documents"}
+
+        processed = 0
         for doc in pending_docs:
+            # Mark as processing to prevent re-enqueueing in subsequent runs
+            doc.status = "processing"
+            self.db.add(doc)
+            self.db.commit()
+
             process_document.delay(str(doc.uuid))
-        return {"status": "success", "processed": len(pending_docs)}
+            processed += 1
+
+        return {"status": "success", "processed": processed}
     except Exception as e:
         logger.error(f"Error processing pending documents: {str(e)}")
         return {"status": "error", "message": str(e)}

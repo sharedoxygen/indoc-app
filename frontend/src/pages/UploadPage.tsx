@@ -55,13 +55,13 @@ const UploadPage: React.FC = () => {
   })
   const [showResultModal, setShowResultModal] = useState(false)
   const [selectedResult, setSelectedResult] = useState<any>(null)
-  
+
   // Processing pipeline integration
-  const { 
-    processingDocuments, 
-    addDocumentToProcessing, 
-    retryProcessing, 
-    cancelProcessing 
+  const {
+    processingDocuments,
+    addDocumentToProcessing,
+    retryProcessing,
+    cancelProcessing
   } = useDocumentProcessing()
 
   const onDrop = useCallback((acceptedFiles: any[]) => {
@@ -258,8 +258,26 @@ const UploadPage: React.FC = () => {
                 Maximum file size: 100MB
               </Typography>
               <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1 }}>
-                <Button variant="outlined" size="small" onClick={openFileDialog}>Select Files</Button>
-                <Button variant="outlined" size="small" onClick={handleFolderSelect}>Upload Folder</Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openFileDialog();
+                  }}
+                >
+                  Select Files
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFolderSelect();
+                  }}
+                >
+                  Upload Folder
+                </Button>
               </Box>
             </Box>
 

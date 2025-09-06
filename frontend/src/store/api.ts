@@ -106,6 +106,20 @@ export const api = createApi({
       }),
       invalidatesTags: ['Document'],
     }),
+    cancelDocument: builder.mutation<{ ok: boolean }, string>({
+      query: (id) => ({
+        url: `/files/cancel/${id}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Document'],
+    }),
+    scanVirusDocument: builder.mutation<{ ok: boolean; scan_result: any; virus_status: string }, string>({
+      query: (id) => ({
+        url: `/files/scan_virus/${id}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Document'],
+    }),
 
     // Search endpoints
     searchDocuments: builder.mutation({
@@ -224,4 +238,6 @@ export const {
   useGetAnalyticsTimeseriesQuery,
   useGetProcessingAnalyticsQuery,
   useRetryDocumentMutation,
+  useCancelDocumentMutation,
+  useScanVirusDocumentMutation,
 } = api

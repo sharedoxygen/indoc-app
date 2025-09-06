@@ -237,7 +237,7 @@ async def upload_file(
             file_hash=file_hash,
             storage_path=f"backend/data/storage/{file_hash}.{file_ext}",
             temp_path=f"backend/data/temp/{file_hash}.{file_ext}",
-            status="uploaded",
+            status="pending",
             title=title or file.filename,
             description=description,
             uploaded_by=current_user.id
@@ -447,7 +447,6 @@ async def retry_document(
     try:
         # Keep original paths and metadata; just reset status and clear any previous error indicators
         document.status = "uploaded"
-        document.updated_at = func.now()
         await db.commit()
 
         from app.tasks.document import process_document
@@ -468,4 +467,5 @@ async def retry_document(
         return {"ok": True, "message": "Document re-queued for processing"}
     except Exception as e:
         await db.rollback()
+        logger.exception(f"Error retrying document {document_id} by user {current_user.id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

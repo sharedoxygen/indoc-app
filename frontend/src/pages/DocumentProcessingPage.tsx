@@ -71,6 +71,7 @@ import {
 } from '@mui/icons-material';
 import { keyframes } from '@mui/system';
 import { styled } from '@mui/system';
+import { useNavigate } from 'react-router-dom';
 
 import DocumentProcessingPipeline from '../components/DocumentProcessingPipeline';
 import PipelineTimeline from '../components/PipelineTimeline';
@@ -79,7 +80,8 @@ import { createDefaultPipelineSteps } from '../components/DocumentProcessingPipe
 import {
     useGetDocumentsQuery,
     useDeleteDocumentMutation,
-    useRetryDocumentMutation
+    useRetryDocumentMutation,
+    useCancelDocumentMutation
 } from '../store/api';
 
 // Enhanced animations
@@ -169,6 +171,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const DocumentProcessingPage: React.FC = () => {
+    const navigate = useNavigate();
     const [tabValue, setTabValue] = useState(0);
     const [page, setPage] = useState(1);
     const [limit] = useState(20);
@@ -196,6 +199,8 @@ const DocumentProcessingPage: React.FC = () => {
     });
 
     const [deleteDocument] = useDeleteDocumentMutation();
+    const [cancelDocument] = useCancelDocumentMutation();
+    const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id?: string; name?: string }>({ open: false });
     const [retryDocument] = useRetryDocumentMutation();
 
     // Derived state
@@ -207,17 +212,24 @@ const DocumentProcessingPage: React.FC = () => {
     );
 
     const stats = useMemo(() => {
-        if (processingDocuments.length > 0) {
-            return getProcessingStats();
-        }
-
+        const totalCount = documentsData?.total ?? processingDocuments.length;
+        const processingCount = processingDocuments.length > 0
+            ? getProcessingStats().processing
+            : allDocuments.filter((doc: any) => doc.status === 'processing').length;
+        const completedCount = allDocuments.filter((doc: any) => doc.status === 'indexed').length;
+        const failedCount = allDocuments.filter((doc: any) => doc.status === 'failed').length;
         return {
-            total: allDocuments.length,
-            processing: activeDocuments.length,
-            completed: allDocuments.filter((doc: any) => doc.status === 'indexed').length,
-            failed: failedDocuments.length
+            total: totalCount,
+            processing: processingCount,
+            completed: completedCount,
+            failed: failedCount
         };
-    }, [processingDocuments, allDocuments, activeDocuments, failedDocuments, getProcessingStats]);
+    }, [documentsData?.total, processingDocuments, allDocuments, getProcessingStats]);
+
+    // Force refetch on mount to pick up newly uploaded docs
+    useEffect(() => {
+        refetch();
+    }, []);
 
     // Use real processing documents from WebSocket, with fallback to processing documents from API
     const pipelineDocuments = useMemo(() => {
@@ -228,7 +240,7 @@ const DocumentProcessingPage: React.FC = () => {
 
         // Priority 2: Documents that are currently processing (from API)
         const processingFromApi = allDocuments.filter((doc: any) =>
-            doc.status === 'processing' || doc.status === 'uploaded' || doc.status === 'text_extracted'
+            doc.status === 'pending' || doc.status === 'processing' || doc.status === 'uploaded' || doc.status === 'text_extracted'
         );
 
         if (processingFromApi.length > 0) {
@@ -238,7 +250,13 @@ const DocumentProcessingPage: React.FC = () => {
                     let currentStep = 'upload';
                     let stepStatuses: { index: number; status: string; progress?: number }[] = [];
 
-                    if (doc.status === 'uploaded') {
+                    if (doc.status === 'pending') {
+                        currentStep = 'virus_scan';
+                        stepStatuses = [
+                            { index: 0, status: 'completed' },
+                            { index: 1, status: 'processing', progress: 25 }
+                        ];
+                    } else if (doc.status === 'uploaded') {
                         currentStep = 'virus_scan';
                         stepStatuses = [
                             { index: 0, status: 'completed' },
@@ -258,6 +276,22 @@ const DocumentProcessingPage: React.FC = () => {
                             { index: 1, status: 'completed' },
                             { index: 2, status: 'completed' },
                             { index: 3, status: 'processing', progress: 80 }
+                        ];
+                    } else if (doc.status === 'indexed') {
+                        currentStep = 'completed';
+                        stepStatuses = [
+                            { index: 0, status: 'completed' },
+                            { index: 1, status: 'completed' },
+                            { index: 2, status: 'completed' },
+                            { index: 3, status: 'completed' },
+                            { index: 4, status: 'completed' },
+                            { index: 5, status: 'completed' }
+                        ];
+                    } else if (doc.status === 'failed') {
+                        currentStep = 'failed';
+                        stepStatuses = [
+                            { index: 0, status: 'completed' },
+                            { index: 1, status: 'failed' }
                         ];
                     }
 
@@ -302,11 +336,11 @@ const DocumentProcessingPage: React.FC = () => {
 
     // Replace manual fetch with RTK Query retryDocument mutation
     const handleStartProcessing = async () => {
-        const uploadedDocs = allDocuments.filter((doc: any) => doc.status === 'uploaded');
-        if (!uploadedDocs.length) return;
+        const docsToProcess = allDocuments.filter((doc: any) => ['pending', 'uploaded'].includes(doc.status));
+        if (!docsToProcess.length) return;
 
-        console.log(`🚀 Enqueueing ${uploadedDocs.length} uploaded document(s) for processing`);
-        for (const doc of uploadedDocs) {
+        console.log(`🚀 Enqueueing ${docsToProcess.length} document(s) for processing (pending/uploaded)`);
+        for (const doc of docsToProcess) {
             const docId = doc.uuid || doc.id;
             try {
                 await retryDocument(docId).unwrap();
@@ -319,26 +353,7 @@ const DocumentProcessingPage: React.FC = () => {
         setTimeout(refetch, 1000);
     };
 
-    // Add automatic processing trigger for uploaded documents
-    useEffect(() => {
-        if (allDocuments.some((doc: any) => doc.status === 'uploaded')) {
-            console.log('🚀 Auto-triggering processing for uploaded documents');
-            handleStartProcessing();
-        }
-    }, [allDocuments]);
-
-    useEffect(() => {
-        // Periodically check for uploaded documents and trigger processing
-        const interval = setInterval(() => {
-            const pendingCount = allDocuments.filter((doc: any) => doc.status === 'uploaded').length;
-            if (pendingCount > 0) {
-                console.log(`⏱️ Auto-triggering processing for ${pendingCount} pending document(s)`);
-                handleStartProcessing();
-            }
-        }, 30000); // every 30 seconds
-
-        return () => clearInterval(interval);
-    }, [allDocuments]);
+    // Remove auto-processing loops - let backend periodic task handle it
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -415,153 +430,39 @@ const DocumentProcessingPage: React.FC = () => {
                 </Box>
             </Box>
 
-            {/* Stats Dashboard */}
-            <Fade in={showStats}>
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <Card
-                            sx={{
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                color: 'white',
-                                position: 'relative',
-                                overflow: 'hidden',
-                                transform: 'perspective(1000px) rotateX(0deg)',
-                                transition: 'transform 0.3s ease',
-                                boxShadow: '0 8px 32px rgba(102, 126, 234, 0.4)',
-                                '&:hover': {
-                                    transform: 'perspective(1000px) rotateX(5deg) scale(1.02)',
-                                    boxShadow: '0 12px 40px rgba(102, 126, 234, 0.6)'
-                                },
-                                '&::before': {
-                                    content: '""',
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: '4px',
-                                    backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
-                                    backgroundSize: '200px 100%',
-                                    animation: `${shimmer} 2s infinite`
-                                }
-                            }}
-                        >
-                            <CardContent>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Box>
-                                        <Typography variant="h3" sx={{ fontWeight: 700, animation: `${countUp} 0.6s ease-out` }}>
-                                            {stats.total}
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                            Total Documents
-                                        </Typography>
-                                    </Box>
-                                    <StatsIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-                                </Box>
-                            </CardContent>
-                        </Card>
+            {/* Stats Dashboard - Executive Style */}
+            <Box sx={{ mb: 3 }}>
+                <Grid container spacing={2}>
+                    <Grid item xs={3}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>TOTAL</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', my: 0.5 }}>{stats.total}</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Documents</Typography>
+                        </Paper>
                     </Grid>
-
-                    <Grid item xs={12} sm={6} md={3}>
-                        <Card
-                            sx={{
-                                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                                color: 'white',
-                                animation: stats.processing > 0 ? `${pulseGlow} 2s infinite` : 'none',
-                                transform: 'perspective(1000px) rotateX(0deg)',
-                                transition: 'transform 0.3s ease',
-                                boxShadow: stats.processing > 0
-                                    ? '0 8px 32px rgba(240, 147, 251, 0.6)'
-                                    : '0 8px 32px rgba(240, 147, 251, 0.3)',
-                                '&:hover': {
-                                    transform: 'perspective(1000px) rotateX(5deg) scale(1.02)',
-                                    boxShadow: '0 12px 40px rgba(240, 147, 251, 0.8)'
-                                }
-                            }}
-                        >
-                            <CardContent>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Box>
-                                        <Typography variant="h3" sx={{ fontWeight: 700, animation: `${countUp} 0.8s ease-out` }}>
-                                            {stats.processing}
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                            Processing
-                                        </Typography>
-                                    </Box>
-                                    <ProcessingIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-                                </Box>
-                            </CardContent>
-                        </Card>
+                    <Grid item xs={3}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: stats.processing > 0 ? 'primary.main' : 'divider', bgcolor: 'background.paper', textAlign: 'center', transition: 'border-color 0.2s ease' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>PROCESSING</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: stats.processing > 0 ? 'primary.main' : 'text.primary', my: 0.5 }}>{stats.processing}</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Active</Typography>
+                        </Paper>
                     </Grid>
-
-                    <Grid item xs={12} sm={6} md={3}>
-                        <Card
-                            sx={{
-                                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                                color: 'white',
-                                transform: 'perspective(1000px) rotateX(0deg)',
-                                transition: 'transform 0.3s ease',
-                                boxShadow: '0 8px 32px rgba(79, 172, 254, 0.4)',
-                                '&:hover': {
-                                    transform: 'perspective(1000px) rotateX(5deg) scale(1.02)',
-                                    boxShadow: '0 12px 40px rgba(79, 172, 254, 0.6)'
-                                }
-                            }}
-                        >
-                            <CardContent>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Box>
-                                        <Typography variant="h3" sx={{ fontWeight: 700, animation: `${countUp} 1s ease-out` }}>
-                                            {stats.completed}
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                            Completed
-                                        </Typography>
-                                    </Box>
-                                    <CompleteIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-                                </Box>
-                            </CardContent>
-                        </Card>
+                    <Grid item xs={3}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>COMPLETED</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main', my: 0.5 }}>{stats.completed}</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Indexed</Typography>
+                        </Paper>
                     </Grid>
-
-                    <Grid item xs={12} sm={6} md={3}>
-                        <Card
-                            sx={{
-                                background: stats.failed > 0
-                                    ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)'
-                                    : 'linear-gradient(135deg, #51cf66 0%, #40c057 100%)',
-                                color: 'white',
-                                transform: 'perspective(1000px) rotateX(0deg)',
-                                transition: 'transform 0.3s ease',
-                                boxShadow: stats.failed > 0
-                                    ? '0 8px 32px rgba(255, 107, 107, 0.4)'
-                                    : '0 8px 32px rgba(81, 207, 102, 0.4)',
-                                animation: stats.failed > 0 ? `${pulseGlow} 3s infinite` : 'none',
-                                '&:hover': {
-                                    transform: 'perspective(1000px) rotateX(5deg) scale(1.02)',
-                                    boxShadow: stats.failed > 0
-                                        ? '0 12px 40px rgba(255, 107, 107, 0.6)'
-                                        : '0 12px 40px rgba(81, 207, 102, 0.6)'
-                                }
-                            }}
-                        >
-                            <CardContent>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Box>
-                                        <Typography variant="h3" sx={{ fontWeight: 700, animation: `${countUp} 1.2s ease-out` }}>
-                                            {stats.failed}
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                            Failed
-                                        </Typography>
-                                    </Box>
-                                    <ErrorIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-                                </Box>
-                            </CardContent>
-                        </Card>
+                    <Grid item xs={3}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: stats.failed > 0 ? 'error.main' : 'divider', bgcolor: 'background.paper', textAlign: 'center', transition: 'border-color 0.2s ease' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>FAILED</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: stats.failed > 0 ? 'error.main' : 'text.primary', my: 0.5 }}>{stats.failed}</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Attention</Typography>
+                        </Paper>
                     </Grid>
                 </Grid>
-            </Fade>
+            </Box>
 
             {/* Main Content with Tabs */}
             <Paper sx={{ width: '100%', bgcolor: 'background.paper' }}>
@@ -606,8 +507,8 @@ const DocumentProcessingPage: React.FC = () => {
 
                         <DocumentProcessingPipeline
                             documents={pipelineDocuments}
-                            onRetry={retryProcessing}
-                            onCancel={cancelProcessing}
+                            onRetry={(id) => retryDocument(id)}
+                            onCancel={(id) => cancelDocument(id)}
                         />
 
                         {pipelineDocuments.length === 0 && (
@@ -767,22 +668,34 @@ const DocumentProcessingPage: React.FC = () => {
                                                             <Tooltip title="Retry Processing">
                                                                 <IconButton
                                                                     size="small"
-                                                                    onClick={() => retryDocument({ id: doc.uuid || doc.id })}
+                                                                    onClick={() => retryDocument(doc.uuid || doc.id)}
                                                                 >
                                                                     <RetryIcon />
                                                                 </IconButton>
                                                             </Tooltip>
                                                         )}
                                                         <Tooltip title="View Details">
-                                                            <IconButton size="small">
+                                                            <IconButton size="small" onClick={() => navigate(`/document/${doc.uuid || doc.id}`)}>
                                                                 <ViewIcon />
                                                             </IconButton>
                                                         </Tooltip>
-                                                        <Tooltip title="More Options">
-                                                            <IconButton size="small">
-                                                                <MoreVertIcon />
-                                                            </IconButton>
-                                                        </Tooltip>
+                                                        {['pending', 'uploaded', 'failed'].includes(doc.status) && (
+                                                            <Tooltip title="Retry Processing">
+                                                                <IconButton size="small" onClick={() => retryDocument(doc.uuid || doc.id)}>
+                                                                    <RetryIcon />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        )}
+                                                        {doc.status !== 'processing' && (
+                                                            <Tooltip title="Delete Document">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => setConfirmDelete({ open: true, id: doc.uuid || doc.id, name: doc.filename })}
+                                                                >
+                                                                    <DeleteIcon />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        )}
                                                     </Box>
                                                 </ListItemSecondaryAction>
                                             </ListItem>
@@ -804,6 +717,28 @@ const DocumentProcessingPage: React.FC = () => {
                     </Box>
                 </TabPanel>
             </Paper>
+
+            {/* Delete confirmation */}
+            <Dialog open={confirmDelete.open} onClose={() => setConfirmDelete({ open: false })}>
+                <DialogTitle>Delete Document</DialogTitle>
+                <DialogContent>
+                    <Typography>Are you sure you want to delete {confirmDelete.name || 'this document'}?</Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmDelete({ open: false })}>Cancel</Button>
+                    <Button color="error" onClick={async () => {
+                        if (confirmDelete.id) {
+                            try {
+                                await deleteDocument(confirmDelete.id as any).unwrap();
+                                setConfirmDelete({ open: false });
+                                refetch();
+                            } catch (e) {
+                                console.error('Failed to delete document', e);
+                            }
+                        }
+                    }}>Delete</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

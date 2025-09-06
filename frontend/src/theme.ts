@@ -164,43 +164,43 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
   typography: {
     fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     h1: {
-      fontSize: '2.5rem',
-      fontWeight: 700,
+      fontSize: '1.875rem',
+      fontWeight: 600,
       lineHeight: 1.2,
       letterSpacing: '-0.02em',
     },
     h2: {
-      fontSize: '2rem',
-      fontWeight: 700,
+      fontSize: '1.5rem',
+      fontWeight: 600,
       lineHeight: 1.3,
       letterSpacing: '-0.01em',
     },
     h3: {
-      fontSize: '1.75rem',
+      fontSize: '1.25rem',
       fontWeight: 600,
       lineHeight: 1.3,
     },
     h4: {
-      fontSize: '1.5rem',
-      fontWeight: 600,
-      lineHeight: 1.4,
-    },
-    h5: {
-      fontSize: '1.25rem',
-      fontWeight: 600,
-      lineHeight: 1.4,
-    },
-    h6: {
       fontSize: '1.125rem',
       fontWeight: 600,
       lineHeight: 1.4,
     },
-    body1: {
+    h5: {
       fontSize: '1rem',
+      fontWeight: 600,
+      lineHeight: 1.4,
+    },
+    h6: {
+      fontSize: '0.9375rem',
+      fontWeight: 600,
+      lineHeight: 1.4,
+    },
+    body1: {
+      fontSize: '0.9375rem',
       lineHeight: 1.6,
     },
     body2: {
-      fontSize: '0.875rem',
+      fontSize: '0.8125rem',
       lineHeight: 1.5,
     },
     button: {
@@ -210,7 +210,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 6,
   },
   shadows: (mode === 'light' ? [
     'none',
@@ -272,12 +272,12 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
         root: {
           textTransform: 'none',
           fontWeight: 500,
-          borderRadius: 8,
-          padding: '10px 20px',
-          fontSize: '0.875rem',
+          borderRadius: 4,
+          padding: '8px 16px',
+          fontSize: '0.8125rem',
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.12)',
+            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
           },
         },
         contained: {
@@ -298,16 +298,16 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 8,
           boxShadow: mode === 'light' 
-            ? '0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06)'
-            : '0px 4px 6px -1px rgba(0, 0, 0, 0.4), 0px 2px 4px -1px rgba(0, 0, 0, 0.24)',
+            ? '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06)'
+            : '0px 1px 3px rgba(0, 0, 0, 0.12), 0px 1px 2px rgba(0, 0, 0, 0.24)',
           transition: 'all 0.2s ease-in-out',
           '&:hover': {
-            transform: 'translateY(-2px)',
+            transform: 'none',
             boxShadow: mode === 'light'
-              ? '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05)'
-              : '0px 10px 15px -3px rgba(0, 0, 0, 0.4), 0px 4px 6px -2px rgba(0, 0, 0, 0.2)',
+              ? '0px 2px 4px rgba(0, 0, 0, 0.08), 0px 1px 2px rgba(0, 0, 0, 0.06)'
+              : '0px 2px 4px rgba(0, 0, 0, 0.2), 0px 1px 2px rgba(0, 0, 0, 0.12)',
           },
         },
       },
@@ -335,8 +335,8 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     MuiListItemButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          margin: '4px 8px',
+          borderRadius: 4,
+          margin: '2px 6px',
           '&.Mui-selected': {
             backgroundColor: mode === 'light' ? brandColors.primary[50] : 'rgba(25, 118, 210, 0.12)',
             color: brandColors.primary[600],
@@ -353,8 +353,9 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 6,
+          borderRadius: 4,
           fontWeight: 500,
+          fontSize: '0.75rem',
         },
       },
     },

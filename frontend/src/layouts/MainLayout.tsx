@@ -65,8 +65,13 @@ const MainLayout: React.FC = () => {
     setAnchorEl(null)
   }
 
-  const handleLogout = () => {
-    dispatch(logout())
+  const handleLogout = async () => {
+    try {
+      // Wait for logout to complete
+      await dispatch(logout()).unwrap()
+    } catch {
+      // ignore errors and proceed to login
+    }
     navigate('/login')
   }
 

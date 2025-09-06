@@ -63,31 +63,31 @@ const DashboardPage: React.FC = () => {
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>Key Metrics</Typography>
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={3} onClick={() => navigate('/documents')} style={{ cursor: 'pointer' }}>
-          <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'primary.main', color: 'primary.contrastText', transition: 'transform .15s ease, box-shadow .15s ease', '&:hover': { transform: 'translateY(-3px)', boxShadow: 8 } }}>
-            <Typography variant="overline" sx={{ fontWeight: 600 }}>Total Documents</Typography>
-            <Typography variant="h3" sx={{ fontWeight: 800, my: 1 }}>{summary?.totals?.documents ?? 0}</Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>Click to view all</Typography>
+          <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'primary.main' } }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>TOTAL DOCUMENTS</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, my: 0.5, color: 'text.primary' }}>{summary?.totals?.documents ?? 0}</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Click to view all</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'success.main', color: 'success.contrastText', transition: 'transform .15s ease, box-shadow .15s ease', '&:hover': { transform: 'translateY(-3px)', boxShadow: 8 } }}>
-            <Typography variant="overline" sx={{ fontWeight: 600 }}>Successfully Indexed</Typography>
-            <Typography variant="h3" sx={{ fontWeight: 800, my: 1 }}>{indexedCount}</Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>Ready for search & chat</Typography>
+          <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'success.main' } }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>SUCCESSFULLY INDEXED</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, my: 0.5, color: 'success.main' }}>{indexedCount}</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Ready for search & chat</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'warning.main', color: 'warning.contrastText', transition: 'transform .15s ease, box-shadow .15s ease', '&:hover': { transform: 'translateY(-3px)', boxShadow: 8 } }}>
-            <Typography variant="overline" sx={{ fontWeight: 600 }}>In Processing Queue</Typography>
-            <Typography variant="h3" sx={{ fontWeight: 800, my: 1 }}>{inQueueNow}</Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>Being processed</Typography>
+          <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'warning.main' } }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>IN PROCESSING QUEUE</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, my: 0.5, color: 'warning.main' }}>{inQueueNow}</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Being processed</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, borderRadius: 3, bgcolor: 'error.main', color: 'error.contrastText', transition: 'transform .15s ease, box-shadow .15s ease', '&:hover': { transform: 'translateY(-3px)', boxShadow: 8 } }}>
-            <Typography variant="overline" sx={{ fontWeight: 600 }}>Processing Failures</Typography>
-            <Typography variant="h3" sx={{ fontWeight: 800, my: 1 }}>{failedNow}</Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>Require attention</Typography>
+          <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', transition: 'border-color 0.2s ease', '&:hover': { borderColor: 'error.main' } }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>PROCESSING FAILURES</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 600, my: 0.5, color: 'error.main' }}>{failedNow}</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Require attention</Typography>
           </Paper>
         </Grid>
       </Grid>
@@ -96,33 +96,33 @@ const DashboardPage: React.FC = () => {
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>Operational Status</Typography>
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'info.main', color: 'info.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{processingNow}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>Processing Now</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>PROCESSING NOW</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>{processingNow}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'warning.main', color: 'warning.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{inQueueNow}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>In Queue</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>IN QUEUE</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'warning.main' }}>{inQueueNow}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'error.main', color: 'error.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{failedNow}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>Failed</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>FAILED</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'error.main' }}>{failedNow}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'secondary.main', color: 'secondary.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{formatSeconds(Number(avgProcessSecs) || 0)}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>Avg Process Time</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>AVG PROCESS TIME</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{formatSeconds(Number(avgProcessSecs) || 0)}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'success.dark', color: 'success.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{formatBytes(summary?.totals?.storage_bytes ?? 0)}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>Storage Used</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>STORAGE USED</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main' }}>{formatBytes(summary?.totals?.storage_bytes ?? 0)}</Typography>
           </Paper>
         </Grid>
       </Grid>
@@ -182,27 +182,27 @@ const DashboardPage: React.FC = () => {
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'text.secondary' }}>System Health</Typography>
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'primary.dark', color: 'primary.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{summary?.totals?.events?.uploads ?? 0}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>Uploads (30d)</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>UPLOADS (30D)</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{summary?.totals?.events?.uploads ?? 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'info.dark', color: 'info.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{summary?.totals?.events?.views ?? 0}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>Views (30d)</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>VIEWS (30D)</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{summary?.totals?.events?.views ?? 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'warning.dark', color: 'warning.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{summary?.totals?.events?.searches ?? 0}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>Searches (30d)</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>SEARCHES (30D)</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{summary?.totals?.events?.searches ?? 0}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, bgcolor: 'success.dark', color: 'success.contrastText', textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{summary?.documents_by_type?.length ?? 0}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: 0.9 }}>File Types</Typography>
+          <Paper sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 500 }}>FILE TYPES</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>{summary?.documents_by_type?.length ?? 0}</Typography>
           </Paper>
         </Grid>
       </Grid>

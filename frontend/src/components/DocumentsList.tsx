@@ -70,33 +70,34 @@ export const DocumentsList: React.FC<DocumentsListProps> = ({ documents, isLoadi
                                         height: '100%',
                                     }}
                                 >
-                                    <CardContent>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                                             <Checkbox
                                                 checked={isSelected}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleDocumentToggle(doc.uuid);
                                                 }}
+                                                size="small"
                                                 sx={{ p: 0, mr: 1 }}
                                             />
-                                            <Typography variant="h6" sx={{ flexGrow: 1 }}>{doc.title || doc.filename}</Typography>
-                                            <Chip label={doc.file_type} size="small" />
+                                            <Typography variant="subtitle1" sx={{ flexGrow: 1, fontSize: '0.875rem', fontWeight: 600 }}>{doc.title || doc.filename}</Typography>
+                                            <Chip label={doc.file_type} size="small" variant="outlined" sx={{ fontSize: '0.6875rem' }} />
                                         </Box>
                                         <Typography variant="body2" color="text.secondary" sx={{
-                                            mb: 2,
-                                            display: '-webkit-box',
-                                            '-webkit-line-clamp': '3',
-                                            '-webkit-box-orient': 'vertical',
+                                            mb: 1.5,
+                                            fontSize: '0.75rem',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
-                                            height: '4.5em',
+                                            display: '-webkit-box',
+                                            lineHeight: 1.4,
+                                            maxHeight: '2.8em'
                                         }}>
                                             {doc.description || 'No description available.'}
                                         </Typography>
                                     </CardContent>
-                                    <CardActions sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 2 }}>
-                                        <Typography variant="caption">
+                                    <CardActions sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 1.5 }}>
+                                        <Typography variant="caption" sx={{ fontSize: '0.6875rem' }}>
                                             {format(new Date(doc.created_at), 'MMM dd, yyyy')}
                                         </Typography>
                                     </CardActions>
