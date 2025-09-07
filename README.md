@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Private Multi-Document AI Conversations - Dedicated AI processing with complete data isolation**
+**Conversational Document Intelligence - Multi-document AI with privacy-focused deployment options**
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg?style=flat&logo=FastAPI)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg?style=flat&logo=react)](https://reactjs.org/)
@@ -16,9 +16,9 @@
 
 ## 🌟 **Overview**
 
-**The ONLY document AI with guaranteed data isolation.** While ChatGPT and other cloud services mix your sensitive documents with other customers' data, inDoc provides dedicated AI processing environments. Chat naturally with multiple documents simultaneously, get intelligent insights across your entire document library, and maintain complete control over your data privacy. Perfect for healthcare, finance, legal, and any organization that values data protection.
+**A privacy-focused approach to document AI conversations.** inDoc enables natural language conversations with your document library while maintaining strict data isolation. Unlike many cloud-based services, inDoc is designed with enterprise privacy requirements in mind, offering both managed and self-hosted deployment options to meet your organization's specific security needs.
 
-✨ **What makes inDoc different:** Your documents are processed in isolated environments with dedicated AI instances, giving you ChatGPT-level intelligence across multiple documents with complete data separation and enterprise-grade security.
+✨ **Key differentiators:** Multi-document conversation capabilities, comprehensive audit logging, and flexible deployment options that prioritize data privacy and regulatory compliance.
 
 ## 🏢 **Flexible Deployment Options**
 
@@ -59,18 +59,18 @@
 
 ---
 
-## 🏆 **Why Choose inDoc Over Cloud Alternatives?**
+## 📋 **Feature Comparison**
 
 | Feature | ChatGPT/Claude | ChatPDF/NotionAI | **inDoc** |
 |---------|----------------|------------------|-----------|
-| **Data Privacy** | ❌ Mixed with other users | ❌ Shared infrastructure | ✅ **Dedicated isolated processing** |
-| **Multi-Document Context** | ❌ Single document focus | ❌ Limited context | ✅ **Multiple documents simultaneously** |
-| **Conversation Memory** | ⚠️ Limited context | ❌ No persistent memory | ✅ **Full conversation history** |
-| **Enterprise Audit Trail** | ❌ No audit logs | ❌ Basic tracking | ✅ **Complete audit logging** |
-| **HIPAA/PCI Ready** | ❌ Not compliant | ❌ Not compliant | ✅ **Built for compliance** |
-| **Custom Model Support** | ❌ Fixed models | ❌ Fixed models | ✅ **Any Ollama model** |
-| **Deployment Flexibility** | ❌ Cloud only | ❌ Cloud only | ✅ **On-premise OR Private SaaS** |
-| **No Training on Your Data** | ❓ May train on uploads | ❓ Unknown policy | ✅ **Guaranteed never used for training** |
+| **Data Privacy** | Shared cloud infrastructure | Shared cloud infrastructure | Dedicated processing environments |
+| **Multi-Document Context** | Single document conversations | Limited cross-document capability | Multiple documents in one conversation |
+| **Conversation Memory** | Session-based context | Basic conversation history | Persistent conversation context |
+| **Enterprise Audit Trail** | Limited logging | Basic activity tracking | Comprehensive audit logging |
+| **Compliance Features** | General cloud compliance | Standard security measures | Purpose-built compliance modes |
+| **Model Flexibility** | Fixed model selection | Limited model options | Open source model support |
+| **Deployment Options** | Cloud-hosted only | Cloud-hosted only | On-premise and Private SaaS options |
+| **Data Usage Policy** | May use for training* | Varies by provider | Never used for model training |
 
 ## 💼 **SaaS vs Self-Hosted: Choose Your Model**
 
@@ -84,7 +84,7 @@
 ✅ **Predictable Costs** - Monthly subscription, no infrastructure surprises  
 ✅ **24/7 Support** - Expert technical support included  
 
-*"Get enterprise-grade document AI without the enterprise IT complexity"*
+*A managed service approach to enterprise document AI*
 
 ### **🏛️ Self-Hosted/On-Premise (Maximum Control)**
 **Perfect for:** Large enterprises, government, defense, maximum security needs
