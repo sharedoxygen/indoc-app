@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Private Multi-Document AI Conversations - Your documents stay on your servers while you chat with advanced AI**
+**Private Multi-Document AI Conversations - Dedicated AI processing with complete data isolation**
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg?style=flat&logo=FastAPI)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg?style=flat&logo=react)](https://reactjs.org/)
@@ -16,9 +16,28 @@
 
 ## 🌟 **Overview**
 
-**The ONLY document AI that keeps your data completely private.** While ChatGPT and other cloud services send your sensitive documents to external servers, inDoc runs entirely on YOUR infrastructure. Chat naturally with multiple documents simultaneously, get intelligent insights across your entire document library, and maintain complete control over your data. Perfect for healthcare, finance, legal, and any organization that values privacy.
+**The ONLY document AI with guaranteed data isolation.** While ChatGPT and other cloud services mix your sensitive documents with other customers' data, inDoc provides dedicated AI processing environments. Chat naturally with multiple documents simultaneously, get intelligent insights across your entire document library, and maintain complete control over your data privacy. Perfect for healthcare, finance, legal, and any organization that values data protection.
 
-✨ **What makes inDoc different:** Your documents never leave your servers, yet you get ChatGPT-level intelligence across multiple documents with full audit trails and enterprise security.
+✨ **What makes inDoc different:** Your documents are processed in isolated environments with dedicated AI instances, giving you ChatGPT-level intelligence across multiple documents with complete data separation and enterprise-grade security.
+
+## 🏢 **Flexible Deployment Options**
+
+**🏛️ On-Premise Deployment**
+- Complete infrastructure control
+- Air-gapped deployments available  
+- Perfect for government, defense, and maximum security needs
+
+**☁️ Private SaaS (Dedicated Cloud)**
+- Fully managed service by Shared Oxygen, LLC
+- Dedicated instances with complete data isolation
+- Your data never mixed with other customers
+- Enterprise SLAs and 24/7 support
+- HIPAA, PCI, SOC 2 compliant hosting
+
+**🔒 Hybrid Options**
+- On-premise processing with cloud management
+- Edge deployments with central monitoring
+- Custom configurations for unique requirements
 
 ### ✨ **Key Capabilities**
 
@@ -44,14 +63,37 @@
 
 | Feature | ChatGPT/Claude | ChatPDF/NotionAI | **inDoc** |
 |---------|----------------|------------------|-----------|
-| **Data Privacy** | ❌ Sent to OpenAI/Anthropic | ❌ Uploaded to cloud | ✅ **Never leaves your servers** |
+| **Data Privacy** | ❌ Mixed with other users | ❌ Shared infrastructure | ✅ **Dedicated isolated processing** |
 | **Multi-Document Context** | ❌ Single document focus | ❌ Limited context | ✅ **Multiple documents simultaneously** |
 | **Conversation Memory** | ⚠️ Limited context | ❌ No persistent memory | ✅ **Full conversation history** |
 | **Enterprise Audit Trail** | ❌ No audit logs | ❌ Basic tracking | ✅ **Complete audit logging** |
 | **HIPAA/PCI Ready** | ❌ Not compliant | ❌ Not compliant | ✅ **Built for compliance** |
 | **Custom Model Support** | ❌ Fixed models | ❌ Fixed models | ✅ **Any Ollama model** |
-| **Deployment Control** | ❌ Cloud only | ❌ Cloud only | ✅ **On-premise or private cloud** |
-| **No Training on Your Data** | ❓ May train on uploads | ❓ Unknown policy | ✅ **Guaranteed privacy** |
+| **Deployment Flexibility** | ❌ Cloud only | ❌ Cloud only | ✅ **On-premise OR Private SaaS** |
+| **No Training on Your Data** | ❓ May train on uploads | ❓ Unknown policy | ✅ **Guaranteed never used for training** |
+
+## 💼 **SaaS vs Self-Hosted: Choose Your Model**
+
+### **☁️ Private SaaS (Recommended for Most)**
+**Perfect for:** Growing businesses, healthcare practices, law firms, financial advisors
+
+✅ **Zero Infrastructure Hassle** - We handle servers, updates, backups  
+✅ **Dedicated Instance** - Your own private AI environment  
+✅ **Enterprise Security** - SOC 2, HIPAA, PCI compliant hosting  
+✅ **Instant Setup** - Live in 24 hours, not weeks  
+✅ **Predictable Costs** - Monthly subscription, no infrastructure surprises  
+✅ **24/7 Support** - Expert technical support included  
+
+*"Get enterprise-grade document AI without the enterprise IT complexity"*
+
+### **🏛️ Self-Hosted/On-Premise (Maximum Control)**
+**Perfect for:** Large enterprises, government, defense, maximum security needs
+
+✅ **Complete Control** - Your infrastructure, your rules  
+✅ **Air-Gapped Option** - No internet connectivity required  
+✅ **Custom Integration** - Deep integration with existing systems  
+✅ **Unlimited Scale** - Add servers as needed  
+✅ **One-Time License** - No recurring subscription fees  
 
 ### 💡 **Perfect For Organizations That Need:**
 - 🏥 **Healthcare:** HIPAA-compliant patient record analysis
@@ -132,8 +174,16 @@ graph TB
 - **Redis 6+**
 - **Elasticsearch 8+** (optional)
 
-### 🐳 **Docker Deployment (Recommended)**
+### 🐳 **Quick Start Options**
 
+#### **For SaaS/Hosted Deployment:**
+Contact Shared Oxygen, LLC for dedicated private cloud instances:
+- ✅ **Fully managed** - We handle infrastructure, updates, backups
+- ✅ **Dedicated environment** - Your data completely isolated  
+- ✅ **Enterprise SLAs** - 99.9% uptime, 24/7 support
+- ✅ **Compliance ready** - HIPAA, PCI, SOC 2 hosting
+
+#### **For Self-Hosted/On-Premise:**
 ```bash
 # Clone the repository
 git clone https://github.com/sharedoxygen/indoc-app.git
