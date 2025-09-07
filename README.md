@@ -142,14 +142,60 @@ open http://localhost:5173
 
 ## 🏗️ **Architecture**
 
-inDoc follows a modern layered architecture designed for enterprise scalability:
-
-**Frontend Layer:** React/TypeScript UI with WebSocket support for real-time chat  
-**API Layer:** FastAPI backend with JWT authentication and security middleware  
-**Processing Layer:** Celery workers handle document processing, virus scanning, text extraction  
-**AI/ML Layer:** LLM services with embeddings and semantic search capabilities  
-**Data Layer:** PostgreSQL, Redis, Elasticsearch, and Weaviate for comprehensive data management  
-**Storage Layer:** Secure file storage with encryption key management
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        UI[React/TypeScript UI]
+        WS[WebSocket Client]
+    end
+    
+    subgraph "API Layer"
+        API[FastAPI Backend]
+        AUTH[JWT Authentication]
+        MIDDLEWARE[Security Middleware]
+    end
+    
+    subgraph "Processing Layer"
+        CELERY[Celery Workers]
+        VIRUS[Virus Scanner]
+        EXTRACT[Text Extraction]
+    end
+    
+    subgraph "AI/ML Layer"
+        LLM[LLM Service]
+        EMBED[Embeddings]
+        SEARCH[Semantic Search]
+    end
+    
+    subgraph "Data Layer"
+        POSTGRES[(PostgreSQL)]
+        REDIS[(Redis)]
+        ELASTIC[(Elasticsearch)]
+        WEAVIATE[(Weaviate)]
+    end
+    
+    subgraph "Storage Layer"
+        FILES[File Storage]
+        ENCRYPT[Encryption Keys]
+    end
+    
+    UI --> API
+    WS --> API
+    API --> AUTH
+    API --> MIDDLEWARE
+    API --> CELERY
+    CELERY --> VIRUS
+    CELERY --> EXTRACT
+    API --> LLM
+    LLM --> EMBED
+    EMBED --> SEARCH
+    SEARCH --> ELASTIC
+    SEARCH --> WEAVIATE
+    API --> POSTGRES
+    API --> REDIS
+    CELERY --> FILES
+    MIDDLEWARE --> ENCRYPT
+```
 
 ---
 
