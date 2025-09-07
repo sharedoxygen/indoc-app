@@ -41,7 +41,7 @@
 ### ✨ **Key Capabilities**
 
 #### **Available Now**
-- 🤖 **AI-Powered Conversations** - Chat naturally with your documents using Ollama LLMs
+- 🤖 **AI-Powered Conversations** - Chat naturally with your documents using open-source LLMs (via Ollama)
 - 📄 **Multi-Document Chat** - Query across multiple documents simultaneously
 - 🔐 **Enterprise Security** - Field-level encryption, comprehensive audit logging, RBAC
 - 🏢 **Multi-Tenant Ready** - Complete tenant isolation for enterprise deployments
@@ -251,15 +251,17 @@ POST /api/v1/chat/conversations
 {
     "message": "What are the key findings in this research paper?",
     "document_ids": ["uuid-1", "uuid-2"],
-    "model": "gpt-oss:20b"
+    "model": "llama2"
 }
 ```
 
-**Supported Models:**
-- `gpt-oss:120b` - Best for complex reasoning and general tasks
-- `deepseek-r1:70b` - Excellent for code generation and technical documents  
-- `kimi-k2:72b` - Best for multilingual documents and context understanding
-- `qwen2.5vl:72b` - Best for documents with images, charts, and visual content
+**Supported Models (Examples):**
+- `llama2` - General-purpose conversations and document analysis
+- `codellama` - Code documentation and technical document analysis  
+- `mistral` - Efficient processing for business documents
+- `llama2:13b` - Higher capacity model for complex document analysis
+
+*Note: Any Ollama-compatible model can be configured*
 
 ### 📄 **Document Processing Pipeline**
 
@@ -323,7 +325,7 @@ FIELD_ENCRYPTION_KEY=your-32-byte-encryption-key-here
 
 # AI/ML Services
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gpt-oss:20b
+OLLAMA_MODEL=llama2
 
 # Search
 ELASTICSEARCH_URL=http://localhost:9200
@@ -401,7 +403,7 @@ POST /api/v1/conversations
 POST /api/v1/conversations/{conversation_id}/messages
 {
     "content": "Summarize the key points from these documents",
-    "model": "gpt-oss:20b"
+    "model": "llama2"
 }
 
 # Get conversation history
