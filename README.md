@@ -28,7 +28,6 @@
 - Perfect for government, defense, and maximum security needs
 
 **☁️ Private SaaS (Dedicated Cloud)**
-- Fully managed service by Shared Oxygen, LLC
 - Dedicated instances with complete data isolation
 - Your data never mixed with other customers
 - Enterprise SLAs and 24/7 support
