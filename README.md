@@ -144,35 +144,57 @@ open http://localhost:5173
 
 ```mermaid
 graph TB
-    subgraph "User Interface"
-        UI[React Frontend]
-        MOBILE[Mobile App]
+    subgraph "Frontend Layer"
+        UI["React/TypeScript UI"]
+        WS["WebSocket Client"]
     end
     
-    subgraph "API Layer"  
-        API[FastAPI Backend]
-        WS[WebSocket Chat]
+    subgraph "API Layer"
+        API["FastAPI Backend"]
+        AUTH["JWT Authentication"]
+        MIDDLEWARE["Security Middleware"]
     end
     
-    subgraph "AI/ML Services"
-        OLLAMA[Ollama LLM Server]
-        SEARCH[Semantic Search]
+    subgraph "Processing Layer"
+        CELERY["Celery Workers"]
+        VIRUS["Virus Scanner"]
+        EXTRACT["Text Extraction"]
+    end
+    
+    subgraph "AI/ML Layer"
+        LLM["LLM Service"]
+        EMBED["Embeddings"]
+        SEARCH["Semantic Search"]
     end
     
     subgraph "Data Layer"
-        POSTGRES[(PostgreSQL)]
-        REDIS[(Redis Cache)]
-        FILES[Document Storage]
+        POSTGRES[("PostgreSQL")]
+        REDIS[("Redis")]
+        ELASTIC[("Elasticsearch")]
+        WEAVIATE[("Weaviate")]
+    end
+    
+    subgraph "Storage Layer"
+        FILES["File Storage"]
+        ENCRYPT["Encryption Keys"]
     end
     
     UI --> API
-    MOBILE --> API
-    API --> WS
-    API --> OLLAMA
-    API --> SEARCH
+    WS --> API
+    API --> AUTH
+    API --> MIDDLEWARE
+    API --> CELERY
+    CELERY --> VIRUS
+    CELERY --> EXTRACT
+    API --> LLM
+    LLM --> EMBED
+    EMBED --> SEARCH
+    SEARCH --> ELASTIC
+    SEARCH --> WEAVIATE
     API --> POSTGRES
     API --> REDIS
-    API --> FILES
+    CELERY --> FILES
+    MIDDLEWARE --> ENCRYPT
 ```
 
 ---
