@@ -16,7 +16,8 @@ from app.api.v1.endpoints import (
     llm,
     chat,
     compliance,
-    relationships
+    relationships,
+    mcp_tools
 )
 
 api_router = APIRouter()
@@ -35,3 +36,4 @@ api_router.include_router(llm.router, prefix="/llm", tags=["LLM"])
 api_router.include_router(chat.router, prefix="/chat", tags=["Chat"])
 api_router.include_router(compliance.router, prefix="/compliance", tags=["Compliance"])
 api_router.include_router(relationships.router, prefix="/relationships", tags=["Document Relationships"])
+api_router.include_router(mcp_tools.router, prefix="/mcp", tags=["MCP Tools"])

@@ -227,10 +227,63 @@ class ConversationService:
             chat_request.message
         )
         
-        # Generate response using MCP/LLM
+        # Check if MCP tools should be used automatically
+        mcp_client = MCPClient(self.db)
+        await mcp_client.connect()
+        
+        # Analyze if tools should be triggered
+        document_ids_for_analysis = []
+        if chat_request.document_ids:
+            document_ids_for_analysis = [str(doc_id) for doc_id in chat_request.document_ids]
+        elif conversation.document_id:
+            document_ids_for_analysis = [str(conversation.document_id)]
+        
+        mcp_results = {}
+        if document_ids_for_analysis:
+            # Check if message suggests tool usage
+            message_analysis = await mcp_client.send_message(chat_request.message, {
+                "document_ids": document_ids_for_analysis
+            })
+            
+            # Auto-execute relevant tools for enhanced responses
+            suggested_tools = message_analysis.get("suggested_tools", [])
+            if suggested_tools:
+                # Execute the most relevant tool automatically
+                primary_tool = suggested_tools[0] if suggested_tools else None
+                
+                if primary_tool == "document_insights":
+                    tool_result = await mcp_client.call_tool("document_insights", {
+                        "document_ids": document_ids_for_analysis,
+                        "analysis_type": "focused"
+                    })
+                    if tool_result.get("status") == "success":
+                        mcp_results["insights"] = tool_result["result"]
+                
+                elif primary_tool == "compare_documents" and len(document_ids_for_analysis) >= 2:
+                    tool_result = await mcp_client.call_tool("compare_documents", {
+                        "document_ids": document_ids_for_analysis
+                    })
+                    if tool_result.get("status") == "success":
+                        mcp_results["comparison"] = tool_result["result"]
+                
+                elif primary_tool == "document_summary":
+                    tool_result = await mcp_client.call_tool("document_summary", {
+                        "document_ids": document_ids_for_analysis,
+                        "summary_type": "executive",
+                        "length": "medium"
+                    })
+                    if tool_result.get("status") == "success":
+                        mcp_results["summary"] = tool_result["result"]
+        
+        # Enhance context with MCP tool results
+        enhanced_context = context
+        if mcp_results:
+            enhanced_context += f"\n\nAdditional Analysis:\n{json.dumps(mcp_results, indent=2)}"
+        
+        # Generate response using MCP/LLM with enhanced context
         response_content = await self._generate_response(
             chat_request.message,
-            context,
+            enhanced_context,
             chat_request.stream
         )
         
