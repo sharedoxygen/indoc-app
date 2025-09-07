@@ -41,7 +41,7 @@
 ### ✨ **Key Capabilities**
 
 #### **Available Now**
-- 🤖 **AI-Powered Conversations** - Chat naturally with your documents using open-source LLMs (via Ollama)
+- 🤖 **AI-Powered Conversations** - Chat naturally with your documents using advanced language models served by Ollama
 - 📄 **Multi-Document Chat** - Query across multiple documents simultaneously
 - 🔐 **Enterprise Security** - Field-level encryption, comprehensive audit logging, RBAC
 - 🏢 **Multi-Tenant Ready** - Complete tenant isolation for enterprise deployments
