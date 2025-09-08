@@ -2,6 +2,10 @@
 Main FastAPI application
 """
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi import Request
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
@@ -15,6 +19,10 @@ from app.middleware.audit import AuditMiddleware
 from app.middleware.telemetry import TelemetryMiddleware
 from app.core.monitoring import metrics_endpoint
 # from app.api.v1.endpoints import chat, bulk_upload  # Temporarily disabled
+from app.middleware.timeout import RequestTimeoutMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.middleware.rate_limiting import RateLimitMiddleware, rate_limiter
+from app.core.cache import cache_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +43,9 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize storage directories: {e}")
         raise
     
+    # Initialize cache service
+    await cache_service.connect()
+    
     # Create database tables
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -45,6 +56,7 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down inDoc application...")
+    await cache_service.disconnect()
     await async_engine.dispose()
 
 
@@ -76,6 +88,9 @@ app.add_middleware(
 app.add_middleware(AuditMiddleware)
 if settings.ENABLE_TELEMETRY:
     app.add_middleware(TelemetryMiddleware)
+app.add_middleware(RequestTimeoutMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, limiter=rate_limiter)
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_PREFIX)
@@ -109,3 +124,32 @@ async def health_check():
 @app.get("/test-auth")
 async def test_auth():
     return {"message": "Test endpoint working", "status": "ok"}
+
+
+# Global exception handlers
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    logger.error(f"HTTP {exc.status_code} for {request.method} {request.url.path}: {exc.detail}")
+    return JSONResponse(status_code=exc.status_code, content={
+        "detail": exc.detail,
+        "status_code": exc.status_code,
+        "path": request.url.path
+    })
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error for {request.method} {request.url.path}: {exc}")
+    return JSONResponse(status_code=422, content={
+        "detail": exc.errors(),
+        "path": request.url.path
+    })
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error for {request.method} {request.url.path}")
+    return JSONResponse(status_code=500, content={
+        "detail": "Internal Server Error",
+        "path": request.url.path
+    })

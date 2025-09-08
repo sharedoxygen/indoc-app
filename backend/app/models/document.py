@@ -48,6 +48,9 @@ class Document(BaseModel):
     encrypted_fields = Column(JSON, default=list)  # List of encrypted field names
     access_level = Column(String(50), default="private")  # public, internal, private, confidential
     
+    # Multi-tenancy  
+    tenant_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    
     # User relationship
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     uploaded_by_user = relationship("User", back_populates="documents")

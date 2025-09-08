@@ -35,6 +35,7 @@ import { ollamaService, OllamaModel } from '../services/ollamaService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { jsPDF } from 'jspdf';
+import { fetchWithTimeout } from '../services/http';
 
 interface Message {
   id: string;
@@ -123,14 +124,17 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
 
   const loadConversationHistory = async () => {
     try {
-      const response = await fetch(`/api/v1/chat/conversations/${conversationId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      const response = await fetchWithTimeout(`/api/v1/chat/conversations/${conversationId}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        timeoutMs: 8000
       });
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages || []);
       }
-    } catch (error) { console.error('Failed to load conversation history:', error); }
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -156,7 +160,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
         }));
         // Keep isLoading true until we receive WS events ('typing'/'message'/'error')
       } else {
-        const response = await fetch('/api/v1/chat/chat', {
+        const response = await fetchWithTimeout('/api/v1/chat/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -168,7 +172,8 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
             document_ids: documentIds,
             model: selectedModel,
             stream: false
-          })
+          }),
+          timeoutMs: 15000
         });
         if (response.ok) {
           const data = await response.json();
@@ -186,7 +191,7 @@ export const DocumentChat: React.FC<DocumentChatProps> = ({
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      setErrorMessage('Network error while sending message.');
+      setErrorMessage('Request timed out or network error.');
       setIsLoading(false);
     }
   };

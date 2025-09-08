@@ -16,6 +16,7 @@ export const api = createApi({
   reducerPath: 'api',
   baseQuery,
   tagTypes: ['User', 'Document', 'Audit', 'Settings'],
+  keepUnusedDataFor: 300, // Keep cached data for 5 minutes
   endpoints: (builder) => ({
     // Auth endpoints
     login: builder.mutation({

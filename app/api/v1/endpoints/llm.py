@@ -94,8 +94,11 @@ async def get_chat_settings(
                 "description": f"Ollama model: {model}"
             })
         
+        # Use first available model as default (smallest)
+        default_model = models[0] if models else "no-models-available"
+        
         return ChatSettings(
-            default_model=settings.OLLAMA_MODEL,
+            default_model=default_model,
             temperature=0.7,
             max_tokens=1000,
             available_models=available_models

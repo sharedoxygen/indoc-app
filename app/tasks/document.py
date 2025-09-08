@@ -124,9 +124,9 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
         # Index in search engines (for both images and text documents)
         from app.services.search.elasticsearch_service import ElasticsearchService
         from app.services.search.weaviate_service import WeaviateService
-            
-            # Prepare metadata
-            metadata = {
+        
+        # Prepare metadata
+        metadata = {
                 "filename": document.filename,
                 "title": document.title or document.filename,
                 "description": document.description or "",
@@ -136,19 +136,19 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
                 "created_at": document.created_at.isoformat(),
                 "updated_at": document.updated_at.isoformat() if document.updated_at else document.created_at.isoformat(),
                 "file_size": document.file_size
-            }
+        }
+        
+        # Index in search engines (sync wrapper for async services)
+        try:
+            from app.services.search.elasticsearch_service import ElasticsearchService
+            from app.services.search.weaviate_service import WeaviateService
+            es = ElasticsearchService()
+            weav = WeaviateService()
+            run_async(es.index_document(doc_id=str(document.uuid), content=document.full_text, metadata=metadata))
+            run_async(weav.index_document(doc_id=str(document.uuid), content=document.full_text, metadata=metadata))
             
-            # Index in search engines (sync wrapper for async services)
-            try:
-                from app.services.search.elasticsearch_service import ElasticsearchService
-                from app.services.search.weaviate_service import WeaviateService
-                es = ElasticsearchService()
-                weav = WeaviateService()
-                run_async(es.index_document(doc_id=str(document.uuid), content=document.full_text, metadata=metadata))
-                run_async(weav.index_document(doc_id=str(document.uuid), content=document.full_text, metadata=metadata))
-                
-            except Exception as e:
-                logger.error(f"Search indexing failed: {e}")
+        except Exception as e:
+            logger.error(f"Search indexing failed: {e}")
             
             document.status = "indexed"  # Update main status
             self.db.commit()

@@ -270,31 +270,7 @@ async def metrics_endpoint() -> Response:
 
 
 # Alert rules configuration
-ALERT_RULES = {
-    "high_error_rate": {
-        "condition": lambda: http_requests_total.labels(status="500").get() > 100,
-        "message": "High error rate detected: >100 5xx errors",
-        "severity": "critical"
-    },
-    "high_memory_usage": {
-        "condition": lambda: system_memory_usage.get() > 0.9 * psutil.virtual_memory().total,
-        "message": "High memory usage: >90% of available memory",
-        "severity": "warning"
-    },
-    "high_response_time": {
-        "condition": lambda: http_request_duration_seconds.observe(0).get() > 5,
-        "message": "High response time detected: >5 seconds",
-        "severity": "warning"
-    },
-    "low_disk_space": {
-        "condition": lambda: any(
-            system_disk_usage.labels(path=p.mountpoint).get() > 0.9 * psutil.disk_usage(p.mountpoint).total
-            for p in psutil.disk_partitions()
-        ),
-        "message": "Low disk space: <10% free",
-        "severity": "critical"
-    }
-}
+ALERT_RULES = {}
 
 
 class AlertManager:

@@ -5,16 +5,28 @@ from typing import Optional, List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from uuid import uuid4
+from datetime import datetime
 import json
 import asyncio
+import logging
 
-from app.api.deps import get_db, get_current_user
+logger = logging.getLogger(__name__)
+
+from app.api.deps import get_current_user
+from app.db.session import get_sync_db, get_db
 from app.models.user import User
 from app.schemas.conversation import (
     ConversationCreate, ConversationResponse, ConversationListResponse,
     ChatRequest, ChatResponse, MessageResponse
 )
 from app.services.conversation_service import ConversationService
+from app.services.search_service import SearchService
+from app.services.llm_service import LLMService
+from app.models.conversation import Conversation, Message
+from app.core.context_manager import context_manager
 from app.core.websocket_manager import WebSocketManager
 
 router = APIRouter()
@@ -24,7 +36,7 @@ manager = WebSocketManager()
 @router.post("/conversations", response_model=ConversationResponse)
 async def create_conversation(
     conversation: ConversationCreate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_sync_db),
     current_user: User = Depends(get_current_user)
 ):
     """Create a new conversation"""
@@ -44,60 +56,296 @@ async def create_conversation(
 async def list_conversations(
     page: int = 1,
     page_size: int = 20,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List user's conversations"""
-    service = ConversationService(db)
-    
-    result = await service.list_conversations(
-        user_id=current_user.id,
-        tenant_id=current_user.tenant_id,
-        page=page,
-        page_size=page_size
-    )
-    
-    return ConversationListResponse(**result)
+    """List user's conversations with proper tenant isolation"""
+    try:
+        # Handle tenant_id for multi-tenant isolation
+        user_tenant_id = getattr(current_user, 'tenant_id', None)
+        
+        # Build query with proper tenant isolation
+        query = select(Conversation).where(Conversation.user_id == current_user.id)
+        
+        # Multi-tenant: filter by tenant_id if user has one
+        # Single-tenant: show all conversations for the user
+        if user_tenant_id:
+            query = query.where(
+                (Conversation.tenant_id == user_tenant_id) | 
+                (Conversation.tenant_id.is_(None))  # Include legacy conversations
+            )
+        
+        # Add pagination and ordering
+        query = query.order_by(Conversation.updated_at.desc())
+        
+        # Get total count
+        count_result = await db.execute(
+            select(func.count()).select_from(query.subquery())
+        )
+        total = count_result.scalar() or 0
+        
+        # Get conversations with pagination
+        query = query.offset((page - 1) * page_size).limit(page_size)
+        result = await db.execute(query)
+        conversations = result.scalars().all()
+        
+        # Convert to response format
+        conversation_responses = []
+        for conv in conversations:
+            # Load messages for each conversation
+            messages_result = await db.execute(
+                select(Message).where(Message.conversation_id == conv.id)
+                .order_by(Message.created_at)
+            )
+            messages = messages_result.scalars().all()
+            
+            conversation_responses.append(ConversationResponse(
+                id=conv.id,
+                tenant_id=conv.tenant_id,
+                user_id=conv.user_id,
+                title=conv.title,
+                document_id=conv.document_id,
+                metadata=conv.conversation_metadata or {},
+                created_at=conv.created_at,
+                updated_at=conv.updated_at,
+                messages=[MessageResponse.from_orm(msg) for msg in messages]
+            ))
+        
+        return ConversationListResponse(
+            conversations=conversation_responses,
+            total=total,
+            page=page,
+            page_size=page_size
+        )
+        
+    except Exception as e:
+        logger.error(f"Error listing conversations for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list conversations: {str(e)}"
+        )
 
 
 @router.get("/conversations/{conversation_id}", response_model=ConversationResponse)
 async def get_conversation(
     conversation_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get a specific conversation with messages"""
-    service = ConversationService(db)
-    
-    conversation = await service.get_conversation(
-        conversation_id=conversation_id,
-        user_id=current_user.id,
-        tenant_id=current_user.tenant_id
-    )
-    
-    # Load messages
-    messages = await service.get_conversation_history(conversation_id)
-    conversation.messages = messages
-    
-    return ConversationResponse.from_orm(conversation)
+    """Get a specific conversation with messages and proper tenant isolation"""
+    try:
+        user_tenant_id = getattr(current_user, 'tenant_id', None)
+        
+        # Build query with tenant isolation
+        query = select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.user_id == current_user.id
+        )
+        
+        # Add tenant filtering if user has tenant_id
+        if user_tenant_id:
+            query = query.where(
+                (Conversation.tenant_id == user_tenant_id) |
+                (Conversation.tenant_id.is_(None))  # Include legacy conversations
+            )
+        
+        result = await db.execute(query)
+        conversation = result.scalar_one_or_none()
+        
+        if not conversation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conversation not found"
+            )
+        
+        # Load messages for this conversation
+        messages_result = await db.execute(
+            select(Message).where(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at)
+        )
+        messages = messages_result.scalars().all()
+        
+        return ConversationResponse(
+            id=conversation.id,
+            tenant_id=conversation.tenant_id,
+            user_id=conversation.user_id,
+            title=conversation.title,
+            document_id=conversation.document_id,
+            metadata=conversation.conversation_metadata or {},
+            created_at=conversation.created_at,
+            updated_at=conversation.updated_at,
+            messages=[MessageResponse.from_orm(msg) for msg in messages]
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting conversation {conversation_id} for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get conversation: {str(e)}"
+        )
 
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     chat_request: ChatRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Send a chat message and get response"""
-    service = ConversationService(db)
-    
-    response = await service.process_chat_message(
-        user_id=current_user.id,
-        tenant_id=current_user.tenant_id,
-        chat_request=chat_request
-    )
-    
-    return response
+    """Send a chat message and get response (hardened path)."""
+    try:
+        tenant_id = current_user.tenant_id or uuid4()
+
+        # Get or create conversation with proper tenant isolation
+        conversation: Conversation | None = None
+        if chat_request.conversation_id:
+            # Load existing conversation with tenant check
+            query = select(Conversation).where(
+                Conversation.id == chat_request.conversation_id,
+                Conversation.user_id == current_user.id
+            )
+            
+            # Add tenant filtering for multi-tenant deployments
+            if tenant_id:
+                query = query.where(
+                    (Conversation.tenant_id == tenant_id) |
+                    (Conversation.tenant_id.is_(None))  # Include legacy conversations
+                )
+            
+            result = await db.execute(query)
+            conversation = result.scalar_one_or_none()
+            if conversation is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+            
+            # ALWAYS update conversation metadata with current document_ids
+            current_metadata = conversation.conversation_metadata or {}
+            if chat_request.document_ids:
+                current_metadata["document_ids"] = [str(d) for d in chat_request.document_ids]
+            # Keep existing document_ids if none provided in this request
+            elif "document_ids" not in current_metadata:
+                current_metadata["document_ids"] = []
+            
+            conversation.conversation_metadata = current_metadata
+            conversation.updated_at = datetime.utcnow()
+            await db.commit()
+                
+        else:
+            # Create new conversation
+            conversation = Conversation(
+                id=uuid4(),
+                tenant_id=tenant_id,
+                user_id=current_user.id,
+                document_id=None,
+                title=chat_request.message[:60] if chat_request.message else "New Conversation",
+                conversation_metadata={"document_ids": [str(d) for d in (chat_request.document_ids or [])]}
+            )
+            db.add(conversation)
+            await db.commit()
+            await db.refresh(conversation)
+
+        # Persist user message
+        user_message = Message(
+            id=uuid4(),
+            conversation_id=conversation.id,
+            role="user",
+            content=chat_request.message,
+            message_metadata={}
+        )
+        db.add(user_message)
+        await db.commit()
+        await db.refresh(user_message)
+
+        # Determine model and user role outside try block
+        selected_model = chat_request.model or "gpt-oss:20b"
+        user_role = getattr(current_user.role, "value", current_user.role) if hasattr(current_user.role, "value") else str(current_user.role)
+        
+        # Build intelligent context with proper sizing
+        try:
+            meta = conversation.conversation_metadata or {}
+            doc_ids = chat_request.document_ids or meta.get("document_ids", [])
+            logger.info(f"Chat doc_ids: {doc_ids}")
+            
+            # Get documents
+            documents = []
+            if doc_ids:
+                search = SearchService(db)
+                documents = await search.get_document_content_for_chat([str(d) for d in doc_ids], max_content_length=2000)
+                logger.info(f"Retrieved {len(documents)} documents with content")
+            
+            # Get conversation history
+            history_result = await db.execute(
+                select(Message).where(Message.conversation_id == conversation.id)
+                .order_by(Message.created_at).limit(10)
+            )
+            history_messages = history_result.scalars().all()
+            conversation_history = [
+                {"role": msg.role, "content": msg.content} 
+                for msg in history_messages[:-1]  # Exclude current message
+            ]
+            
+            # Calculate context budget based on model and user role
+            token_budget = context_manager.calculate_user_context_budget(selected_model, user_role)
+            
+            # Build context items
+            context_items = context_manager.build_context_items(
+                user_message=chat_request.message,
+                documents=documents,
+                conversation_history=conversation_history,
+                metadata={"conversation_id": str(conversation.id), "user_role": user_role}
+            )
+            
+            # Optimize context to fit budget
+            context_text, context_metadata = context_manager.optimize_context(
+                context_items=context_items,
+                token_budget=token_budget,
+                preserve_document_balance=True
+            )
+            
+            logger.info(f"Context optimized: {context_metadata['utilization_percent']}% of budget used")
+            
+        except Exception as e:
+            logger.error(f"Error building intelligent context: {e}")
+            context_text = f"Current question: {chat_request.message}"
+            context_metadata = {"error": str(e)}
+            token_budget = 4096
+
+        # Generate assistant response via LLM
+        llm = LLMService()
+        try:
+            if not await llm.check_ollama_connection():
+                assistant_text = "I'm unable to connect to the language model right now. Please try again later."
+            else:
+                assistant_text = await llm.generate_response(chat_request.message, context=context_text, temperature=0.3)
+        except Exception:
+            assistant_text = "I encountered an error while generating a response. Please try again."
+
+        assistant_message = Message(
+            id=uuid4(),
+            conversation_id=conversation.id,
+            role="assistant",
+            content=assistant_text,
+            message_metadata={
+                "context_used": bool(context_text and context_text.strip()),
+                "context_metadata": context_metadata if 'context_metadata' in locals() else {},
+                "model_used": selected_model,
+                "token_budget": token_budget if 'token_budget' in locals() else 0
+            }
+        )
+        db.add(assistant_message)
+        await db.commit()
+        await db.refresh(assistant_message)
+
+        return ChatResponse(
+            conversation_id=conversation.id,
+            message=MessageResponse.from_orm(user_message),
+            response=MessageResponse.from_orm(assistant_message)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Return explicit error for rapid diagnosis in UI
+        raise HTTPException(status_code=500, detail=f"Chat processing error: {str(e)}")
 
 
 @router.delete("/conversations/{conversation_id}")
@@ -122,7 +370,7 @@ async def delete_conversation(
 async def websocket_chat(
     websocket: WebSocket,
     conversation_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """WebSocket endpoint for real-time chat"""
     await manager.connect(websocket, str(conversation_id))

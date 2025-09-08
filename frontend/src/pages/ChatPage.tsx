@@ -182,6 +182,7 @@ const ChatPage: React.FC = () => {
                                         const isSelected = selectedDocuments.includes(doc.uuid)
                                         return (
                                             <Card
+                                                key={doc.uuid}
                                                 sx={{
                                                     cursor: 'pointer',
                                                     border: isSelected ? 2 : 1,

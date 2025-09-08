@@ -22,19 +22,34 @@ class MessageCreate(MessageBase):
     pass
 
 
-class MessageResponse(MessageBase):
+class MessageResponse(BaseModel):
     """Schema for message response"""
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     conversation_id: UUID
+    role: RoleStr
+    content: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
+
+    @classmethod
+    def from_orm(cls, obj):
+        """Custom from_orm to handle message_metadata field"""
+        return cls(
+            id=obj.id,
+            conversation_id=obj.conversation_id,
+            role=obj.role,
+            content=obj.content,
+            metadata=obj.message_metadata if hasattr(obj, 'message_metadata') else {},
+            created_at=obj.created_at
+        )
 
 
 class ConversationBase(BaseModel):
     """Base conversation schema"""
     title: Optional[str] = None
-    document_id: Optional[UUID] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    document_id: Optional[int] = None  # DB uses integer FK
+    metadata: Dict[str, Any] = Field(default_factory=dict, alias="conversation_metadata")
 
 
 class ConversationCreate(ConversationBase):
@@ -53,7 +68,7 @@ class ConversationResponse(ConversationBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     tenant_id: UUID
-    user_id: UUID
+    user_id: int
     created_at: datetime
     updated_at: datetime
     messages: List[MessageResponse] = Field(default_factory=list)

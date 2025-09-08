@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     
     # Ollama
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434")
-    OLLAMA_MODEL: str = Field(default="llama2")
+    OLLAMA_MODEL: str = Field(default="gpt-oss:20b")
     
     # Security
     JWT_SECRET_KEY: str = Field(default="")  # Will be set by key manager
@@ -170,6 +170,12 @@ class Settings(BaseSettings):
     SEARCH_TIMEOUT_MS: int = 200
     RERANK_TIMEOUT_MS: int = 100
     LLM_TIMEOUT_S: int = 30
+    
+    # Caching
+    ENABLE_REDIS_CACHE: bool = True
+    CACHE_TTL_DOCUMENTS: int = 1800  # 30 minutes
+    CACHE_TTL_LLM_RESPONSES: int = 3600  # 1 hour
+    CACHE_TTL_SEARCH_RESULTS: int = 600  # 10 minutes
     
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]

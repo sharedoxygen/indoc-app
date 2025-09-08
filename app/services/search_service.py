@@ -3,7 +3,11 @@ Search service for document retrieval
 """
 import logging
 from typing import List, Dict, Any, Optional
+from uuid import UUID as UUID_t
 from dataclasses import dataclass
+from app.core.cache import cache_service
+from sqlalchemy import select
+from app.models.document import Document
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +154,7 @@ class SearchService:
         max_content_length: int = 4000
     ) -> List[Dict[str, Any]]:
         """
-        Get document content optimized for chat conversations
+        Get document content optimized for chat conversations with caching
         
         Args:
             document_ids: List of document UUIDs
@@ -162,18 +166,42 @@ class SearchService:
         try:
             documents = []
             
-            if self.db:
+            # Check cache for each document first
+            cache_keys = [f"doc_content:{doc_id}" for doc_id in document_ids]
+            cached_docs = await cache_service.get_many(cache_keys)
+            
+            uncached_ids = []
+            for i, doc_id in enumerate(document_ids):
+                cache_key = cache_keys[i]
+                if cache_key in cached_docs:
+                    documents.append(cached_docs[cache_key])
+                else:
+                    uncached_ids.append(doc_id)
+            
+            # Fetch uncached documents from DB
+            if uncached_ids and self.db:
+                # Normalize IDs to UUID objects for DB queries
+                normalized_ids: List[UUID_t] = []
+                for did in uncached_ids:
+                    try:
+                        normalized_ids.append(did if isinstance(did, UUID_t) else UUID_t(did))
+                    except Exception:
+                        # Skip invalid UUIDs
+                        continue
+
                 if hasattr(self.db, 'execute'):
-                    # Async session
-                    query = select(Document).where(Document.uuid.in_(document_ids))
+                    # Async session - no tenant filtering for search service
+                    query = select(Document).where(Document.uuid.in_(normalized_ids))
                     result = await self.db.execute(query)
                     db_documents = result.scalars().all()
                 else:
-                    # Sync session
+                    # Sync session - no tenant filtering for search service
                     db_documents = self.db.query(Document).filter(
-                        Document.uuid.in_(document_ids)
+                        Document.uuid.in_(normalized_ids)
                     ).all()
                 
+                # Process and cache new documents
+                new_cached_docs = {}
                 for doc in db_documents:
                     content = doc.full_text or doc.description or ""
                     
@@ -181,7 +209,7 @@ class SearchService:
                     if len(content) > max_content_length:
                         content = content[:max_content_length] + "... (truncated)"
                     
-                    documents.append({
+                    doc_data = {
                         "id": str(doc.uuid),
                         "title": doc.title or doc.filename,
                         "content": content,
@@ -192,9 +220,15 @@ class SearchService:
                             "created_at": doc.created_at.isoformat() if doc.created_at else None,
                             "tags": doc.tags or []
                         }
-                    })
+                    }
+                    documents.append(doc_data)
+                    new_cached_docs[f"doc_content:{doc.uuid}"] = doc_data
+                
+                # Cache new documents for 30 minutes
+                if new_cached_docs:
+                    await cache_service.set_many(new_cached_docs, ttl=1800)
             
-            logger.info(f"Retrieved {len(documents)} documents for chat")
+            logger.info(f"Retrieved {len(documents)} documents for chat ({len(cached_docs)} cached)")
             return documents
             
         except Exception as e:

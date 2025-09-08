@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 import httpx
 import asyncio
 from app.core.config import settings
+from app.core.cache import cache_service
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +16,21 @@ class LLMService:
     
     def __init__(self):
         self.base_url = settings.OLLAMA_BASE_URL
-        self.model = settings.OLLAMA_MODEL
+        self.model = None  # Will be dynamically selected
         self.timeout = settings.LLM_TIMEOUT_S
+        self._http_client = None
+        self._available_models = None
+        self._default_model = None
+    
+    async def get_http_client(self) -> httpx.AsyncClient:
+        """Get persistent HTTP client with connection pooling"""
+        if self._http_client is None or self._http_client.is_closed:
+            self._http_client = httpx.AsyncClient(
+                timeout=httpx.Timeout(30.0, connect=10.0),
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+                follow_redirects=True
+            )
+        return self._http_client
         
     async def generate_response(
         self,
@@ -27,7 +41,7 @@ class LLMService:
         model: Optional[str] = None
     ) -> str:
         """
-        Generate a response from the LLM
+        Generate a response from the LLM with caching
         
         Args:
             prompt: The user prompt
@@ -38,12 +52,27 @@ class LLMService:
         Returns:
             Generated response text
         """
+        # Dynamically select model if not specified
+        if model:
+            selected_model = model
+        else:
+            # Get first available model (smallest)
+            available = await self.list_available_models()
+            if not available:
+                raise Exception("No Ollama models available")
+            selected_model = available[0]
+        
+        # Check cache first for identical requests
+        cached_response = await cache_service.get_cached_llm_response(prompt, context or "", selected_model)
+        if cached_response:
+            logger.info(f"Cache hit for LLM request: {prompt[:50]}...")
+            return cached_response
+        
         try:
             # Build the full prompt with context
             full_prompt = self._build_prompt(prompt, context)
             
             # Prepare request payload for Ollama
-            selected_model = model or self.model
             payload = {
                 "model": selected_model,
                 "prompt": full_prompt,
@@ -55,16 +84,21 @@ class LLMService:
                 "stream": False
             }
             
-            # Make request to Ollama
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.base_url}/api/generate",
-                    json=payload
-                )
-                response.raise_for_status()
-                
-                result = response.json()
-                return result.get("response", "").strip()
+            # Make request to Ollama with connection pooling
+            client = await self.get_http_client()
+            response = await client.post(
+                f"{self.base_url}/api/generate",
+                json=payload
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            response_text = result.get("response", "").strip()
+            
+            # Cache the response
+            await cache_service.cache_llm_response(prompt, context or "", selected_model, response_text)
+            
+            return response_text
                 
         except httpx.TimeoutException:
             logger.error("LLM request timeout")
@@ -344,24 +378,58 @@ Numbers: [list]"""
     async def check_ollama_connection(self) -> bool:
         """Check if Ollama is available and responsive"""
         try:
-            async with httpx.AsyncClient(timeout=5) as client:
-                response = await client.get(f"{self.base_url}/api/tags")
-                return response.status_code == 200
+            client = await self.get_http_client()
+            response = await client.get(f"{self.base_url}/api/tags")
+            if response.status_code == 200:
+                data = response.json()
+                return len(data.get("models", [])) > 0
+            return False
         except Exception as e:
-            logger.error(f"Ollama connection check failed: {e}")
+            logger.warning(f"Ollama connection check failed: {e}")
             return False
     
     async def list_available_models(self) -> List[str]:
-        """Get list of available Ollama models"""
+        """Get list of available Ollama models, sorted by size (small to large)"""
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                response = await client.get(f"{self.base_url}/api/tags")
-                response.raise_for_status()
-                
-                result = response.json()
-                models = [model.get("name", "") for model in result.get("models", [])]
-                return [m for m in models if m]
-                
+            client = await self.get_http_client()
+            response = await client.get(f"{self.base_url}/api/tags")
+            response.raise_for_status()
+            
+            result = response.json()
+            models_data = result.get("models", [])
+            
+            # Filter out embedding models and sort by parameter size
+            chat_models = []
+            for model in models_data:
+                name = model.get("name", "")
+                if name and not any(embed_term in name.lower() for embed_term in ['embed', 'embedding']):
+                    chat_models.append(model)
+            
+            # Sort by parameter size (extract from details)
+            def extract_param_size(model_data):
+                details = model_data.get("details", {})
+                param_size = details.get("parameter_size", "0B")
+                # Convert to comparable number (e.g., "20.9B" -> 20.9e9)
+                try:
+                    if param_size.endswith('B'):
+                        return float(param_size[:-1]) * 1e9
+                    elif param_size.endswith('M'):
+                        return float(param_size[:-1]) * 1e6
+                    elif param_size.endswith('K'):
+                        return float(param_size[:-1]) * 1e3
+                    else:
+                        return float(param_size.rstrip('B'))
+                except:
+                    return 0
+            
+            sorted_models = sorted(chat_models, key=extract_param_size)
+            model_names = [model.get("name", "") for model in sorted_models]
+            
+            # Cache the sorted list
+            self._available_models = [m for m in model_names if m]
+            
+            return self._available_models
+            
         except Exception as e:
             logger.error(f"Error fetching available models: {e}")
             return []

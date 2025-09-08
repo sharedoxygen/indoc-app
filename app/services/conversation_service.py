@@ -31,13 +31,13 @@ class ConversationService:
     
     def __init__(self, db: Session):
         self.db = db
-        self.mcp_client = MCPClient()
+        self.mcp_client = MCPClient(db)
         self.search_service = SearchService(db)
     
     async def create_conversation(
         self, 
-        user_id: UUID,
-        tenant_id: UUID,
+        user_id: int,
+        tenant_id: UUID | None,
         document_id: Optional[UUID] = None,
         title: Optional[str] = None
     ) -> Conversation:
@@ -46,9 +46,11 @@ class ConversationService:
         document_db_id = None
         # If document_id provided, verify it exists and user has access
         if document_id:
+            # Query document with tenant_id matching, allowing for legacy docs with tenant_id = None
             document = self.db.query(Document).filter(
-                Document.uuid == document_id,
-                Document.tenant_id == tenant_id
+                Document.uuid == document_id
+            ).filter(
+                (Document.tenant_id == tenant_id) | (Document.tenant_id.is_(None))
             ).first()
             
             if not document:
@@ -61,6 +63,11 @@ class ConversationService:
             if not title:
                 title = f"Chat with {document.filename}"
         
+        # Ensure tenant_id (prevent DB NOT NULL violations)
+        if tenant_id is None:
+            tenant_id = uuid4()
+            logger.warning(f"No tenant_id for user {user_id}; generated tenant_id={tenant_id}")
+
         conversation = Conversation(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -80,7 +87,7 @@ class ConversationService:
     async def get_conversation(
         self, 
         conversation_id: UUID,
-        user_id: UUID,
+        user_id: int,
         tenant_id: UUID
     ) -> Conversation:
         """Get a conversation by ID"""
@@ -101,7 +108,7 @@ class ConversationService:
     
     async def list_conversations(
         self,
-        user_id: UUID,
+        user_id: int,
         tenant_id: UUID,
         page: int = 1,
         page_size: int = 20
@@ -137,7 +144,7 @@ class ConversationService:
             conversation_id=conversation_id,
             role=role,
             content=content,
-            metadata=metadata or {},
+            message_metadata=metadata or {},
             created_at=datetime.utcnow()
         )
         
@@ -190,7 +197,7 @@ class ConversationService:
             )
             # Store all document IDs in the conversation's metadata
             if chat_request.document_ids:
-                conversation.metadata = {"document_ids": [str(doc_id) for doc_id in chat_request.document_ids]}
+                conversation.conversation_metadata = {"document_ids": [str(doc_id) for doc_id in chat_request.document_ids]}
                 self.db.commit()
 
         # Add user message
@@ -212,13 +219,13 @@ class ConversationService:
                          f"{compliance_scan['high_sensitivity_count']} high-sensitivity items")
             
             # Add compliance metadata to conversation
-            compliance_metadata = conversation.metadata or {}
+            compliance_metadata = conversation.conversation_metadata or {}
             compliance_metadata.update({
                 "phi_detected": True,
                 "compliance_mode": compliance_manager.current_mode.value,
                 "last_phi_detection": datetime.utcnow().isoformat()
             })
-            conversation.metadata = compliance_metadata
+            conversation.conversation_metadata = compliance_metadata
             self.db.commit()
         
         # Get conversation context
@@ -349,23 +356,22 @@ class ConversationService:
         document_ids_to_search = []
 
         # Get document IDs from metadata if available
-        if 'document_ids' in conversation.metadata:
-            document_ids_to_search = [UUID(doc_id) for doc_id in conversation.metadata.get('document_ids', [])]
+        if 'document_ids' in (conversation.conversation_metadata or {}):
+            document_ids_to_search = [UUID(doc_id) for doc_id in conversation.conversation_metadata.get('document_ids', [])]
         elif conversation.document_id:
             document_ids_to_search.append(conversation.document_id)
 
         # Add document context if available
         if document_ids_to_search:
-            search_results = await self.search_service.hybrid_search(
-                query=query,
+            documents = await self.search_service.get_document_content_for_chat(
                 document_ids=[str(doc_id) for doc_id in document_ids_to_search],
-                limit=5  # Increase limit for multi-document search
+                max_content_length=500
             )
 
-            if search_results:
+            if documents:
                 context_parts.append("Relevant document sections:")
-                for result in search_results:
-                    context_parts.append(f"- {result.get('content', '')[:500]}")
+                for d in documents:
+                    context_parts.append(f"- {d.get('content', '')[:500]}")
 
         # Add recent conversation history
         recent_messages = await self.get_conversation_history(
