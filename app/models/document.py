@@ -3,7 +3,7 @@ Document and DocumentChunk models
 """
 from sqlalchemy import Column, String, Integer, Float, Text, Boolean, ForeignKey, JSON, LargeBinary
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
+from app.core.types import GUID
 import uuid
 
 from app.models.base import BaseModel
@@ -13,7 +13,7 @@ class Document(BaseModel):
     __tablename__ = "documents"
     
     # Basic info
-    uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, index=True)
+    uuid = Column(GUID(), default=uuid.uuid4, unique=True, index=True)
     filename = Column(String(255), nullable=False)
     file_type = Column(String(50), nullable=False)
     file_size = Column(Integer, nullable=False)
@@ -49,7 +49,7 @@ class Document(BaseModel):
     access_level = Column(String(50), default="private")  # public, internal, private, confidential
     
     # Multi-tenancy  
-    tenant_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    tenant_id = Column(GUID(), nullable=True, index=True)
     
     # User relationship
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)

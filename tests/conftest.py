@@ -96,12 +96,25 @@ async def test_user(test_db: AsyncSession) -> User:
         hashed_password=get_password_hash("testpassword"),
         role=UserRole.VIEWER,
         is_active=True,
-        is_verified=True
+        is_verified=False
     )
     test_db.add(user)
     await test_db.commit()
     await test_db.refresh(user)
     return user
+
+
+@pytest.fixture
+async def test_token(client: AsyncClient, test_user: User) -> str:
+    """Obtain JWT token via login endpoint for test_user"""
+    login_data = {"username": test_user.email, "password": "testpassword"}
+    response = await client.post(
+        "/api/v1/auth/login",
+        data=login_data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    token = response.json().get("access_token")
+    return token
 
 
 @pytest.fixture
@@ -138,12 +151,6 @@ async def test_uploader_user(test_db: AsyncSession) -> User:
     await test_db.commit()
     await test_db.refresh(uploader)
     return uploader
-
-
-@pytest.fixture
-def test_token(test_user: User) -> str:
-    """Create test JWT token"""
-    return create_access_token(data={"sub": str(test_user.id)})
 
 
 @pytest.fixture

@@ -7,8 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.config import settings
-from app.api.deps import get_current_user, require_admin
-from app.db.session import get_db
+from app.api.deps import get_current_user, require_admin, get_db
 from app.models.user import User, UserRole
 from app.models.audit import AuditLog
 from app.schemas.auth import UserResponse, UserCreate, UserUpdate
@@ -88,6 +87,12 @@ async def get_user_statistics(
         "verified_users": verified_result.scalar(),
         "users_by_role": stats
     }
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_my_user(current_user: User = Depends(get_current_user)) -> UserResponse:
+    """Get the current authenticated user"""
+    return current_user
 
 
 @router.get("/{user_id}", response_model=UserResponse)

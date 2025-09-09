@@ -14,12 +14,16 @@ class WeaviateService:
     """Service for Weaviate vector search operations"""
     
     def __init__(self):
-        self.client = weaviate.Client(
-            url=settings.WEAVIATE_URL,
-            additional_headers={
-                "X-OpenAI-Api-Key": "not-needed",  # Using local transformers
-            }
-        )
+        try:
+            self.client = weaviate.Client(
+                url=settings.WEAVIATE_URL,
+                additional_headers={
+                    "X-OpenAI-Api-Key": "not-needed",  # Using local transformers
+                }
+            )
+        except Exception as e:
+            logger.warning(f"Weaviate init failed, proceeding without client: {e}")
+            self.client = None
         self.class_name = settings.WEAVIATE_CLASS
     
     async def vector_search(

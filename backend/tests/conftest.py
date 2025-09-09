@@ -141,19 +141,19 @@ async def test_uploader_user(test_db: AsyncSession) -> User:
 
 
 @pytest.fixture
-def test_token(test_user: User) -> str:
+async def test_token(test_user: User) -> str:
     """Create test JWT token"""
     return create_access_token(data={"sub": str(test_user.id)})
 
 
 @pytest.fixture
-def admin_token(test_admin_user: User) -> str:
+async def admin_token(test_admin_user: User) -> str:
     """Create admin JWT token"""
     return create_access_token(data={"sub": str(test_admin_user.id)})
 
 
 @pytest.fixture
-def uploader_token(test_uploader_user: User) -> str:
+async def uploader_token(test_uploader_user: User) -> str:
     """Create uploader JWT token"""
     return create_access_token(data={"sub": str(test_uploader_user.id)})
 

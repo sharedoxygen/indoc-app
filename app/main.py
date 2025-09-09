@@ -139,9 +139,16 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.error(f"Validation error for {request.method} {request.url.path}: {exc}")
+    # Serialize validation errors without non-serializable data
+    serialized_errors = []
+    for err in exc.errors():
+        serialized_errors.append({
+            "loc": err.get("loc"),
+            "msg": err.get("msg"),
+            "type": err.get("type")
+        })
     return JSONResponse(status_code=422, content={
-        "detail": exc.errors(),
+        "detail": serialized_errors,
         "path": request.url.path
     })
 

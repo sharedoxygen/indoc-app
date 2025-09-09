@@ -4,6 +4,7 @@ Authentication schemas
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from typing import Optional
 import re
+from datetime import datetime
 
 
 class Token(BaseModel):
@@ -47,3 +48,5 @@ class UserResponse(UserBase):
     role: str
     is_active: bool
     is_verified: bool
+    # Timestamp of user creation
+    created_at: datetime

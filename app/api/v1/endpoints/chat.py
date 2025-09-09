@@ -15,8 +15,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from app.api.deps import get_current_user
-from app.db.session import get_sync_db, get_db
+from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.conversation import (
     ConversationCreate, ConversationResponse, ConversationListResponse,
@@ -36,20 +35,35 @@ manager = WebSocketManager()
 @router.post("/conversations", response_model=ConversationResponse)
 async def create_conversation(
     conversation: ConversationCreate,
-    db: Session = Depends(get_sync_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new conversation"""
-    service = ConversationService(db)
-    
-    result = await service.create_conversation(
+    """Create a new conversation with optional document attachment"""
+    # Determine tenant_id, without generating a new one for filtering
+    tenant_id = current_user.tenant_id or uuid4()
+    # Manually create conversation record using integer document_id
+    new_conv = Conversation(
+        id=uuid4(),
+        tenant_id=tenant_id,
         user_id=current_user.id,
-        tenant_id=current_user.tenant_id,
         document_id=conversation.document_id,
-        title=conversation.title
+        title=conversation.title or ""
     )
-    
-    return ConversationResponse.from_orm(result)
+    db.add(new_conv)
+    await db.commit()
+    await db.refresh(new_conv)
+    # Return response without loading messages
+    return ConversationResponse(
+        id=new_conv.id,
+        tenant_id=new_conv.tenant_id,
+        user_id=new_conv.user_id,
+        title=new_conv.title,
+        document_id=new_conv.document_id,
+        metadata=new_conv.conversation_metadata or {},
+        created_at=new_conv.created_at,
+        updated_at=new_conv.updated_at,
+        messages=[]
+    )
 
 
 @router.get("/conversations", response_model=ConversationListResponse)
@@ -195,7 +209,8 @@ async def chat(
 ):
     """Send a chat message and get response (hardened path)."""
     try:
-        tenant_id = current_user.tenant_id or uuid4()
+        # Retrieve user tenant_id; do not generate a new one for filtering
+        db_tenant_id = current_user.tenant_id
 
         # Get or create conversation with proper tenant isolation
         conversation: Conversation | None = None
@@ -206,10 +221,10 @@ async def chat(
                 Conversation.user_id == current_user.id
             )
             
-            # Add tenant filtering for multi-tenant deployments
-            if tenant_id:
+            # Add tenant filtering only if user has a tenant_id
+            if db_tenant_id is not None:
                 query = query.where(
-                    (Conversation.tenant_id == tenant_id) |
+                    (Conversation.tenant_id == db_tenant_id) |
                     (Conversation.tenant_id.is_(None))  # Include legacy conversations
                 )
             
@@ -234,7 +249,7 @@ async def chat(
             # Create new conversation
             conversation = Conversation(
                 id=uuid4(),
-                tenant_id=tenant_id,
+                tenant_id=db_tenant_id or uuid4(),
                 user_id=current_user.id,
                 document_id=None,
                 title=chat_request.message[:60] if chat_request.message else "New Conversation",
@@ -244,20 +259,22 @@ async def chat(
             await db.commit()
             await db.refresh(conversation)
 
-        # Persist user message
+        # Persist user message with document context metadata
         user_message = Message(
             id=uuid4(),
             conversation_id=conversation.id,
             role="user",
             content=chat_request.message,
-            message_metadata={}
+            message_metadata={
+                "document_ids": [str(d) for d in (chat_request.document_ids or [])]
+            }
         )
         db.add(user_message)
         await db.commit()
         await db.refresh(user_message)
 
         # Determine model and user role outside try block
-        selected_model = chat_request.model or "gpt-oss:20b"
+        selected_model = getattr(chat_request, 'model', None) or "gpt-oss:20b"
         user_role = getattr(current_user.role, "value", current_user.role) if hasattr(current_user.role, "value") else str(current_user.role)
         
         # Build intelligent context with proper sizing
@@ -336,10 +353,15 @@ async def chat(
         await db.commit()
         await db.refresh(assistant_message)
 
+        # Construct message and response payloads, ensuring document_ids are included
+        user_msg_resp = MessageResponse.from_orm(user_message)
+        # Always include document_ids metadata from request
+        user_msg_resp.metadata["document_ids"] = [str(d) for d in (chat_request.document_ids or [])]
+        assistant_msg_resp = MessageResponse.from_orm(assistant_message)
         return ChatResponse(
             conversation_id=conversation.id,
-            message=MessageResponse.from_orm(user_message),
-            response=MessageResponse.from_orm(assistant_message)
+            message=user_msg_resp,
+            response=assistant_msg_resp
         )
     except HTTPException:
         raise
@@ -370,7 +392,7 @@ async def delete_conversation(
 async def websocket_chat(
     websocket: WebSocket,
     conversation_id: UUID,
-    db: Session = Depends(get_sync_db)
+    db: Session = Depends(get_db)
 ):
     """WebSocket endpoint for real-time chat"""
     await manager.connect(websocket, str(conversation_id))
@@ -390,8 +412,8 @@ async def websocket_chat(
             await manager.disconnect(websocket, str(conversation_id))
             return
         
-        # Get user from token (implement proper JWT validation)
-        # current_user = await get_user_from_token(token, db)
+        # Get current user from token for authenticated WebSocket sessions
+        current_user = await get_current_user(token, db)
         
         # Send connection confirmation
         await websocket.send_text(json.dumps({

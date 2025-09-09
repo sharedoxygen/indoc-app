@@ -98,8 +98,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         """Process request with rate limiting"""
         
-        # Skip rate limiting for health checks
-        if request.url.path in ["/health", "/", "/api/v1/health"]:
+        # Skip rate limiting for health checks and auth endpoints
+        if request.url.path in ["/health", "/", "/api/v1/health", "/api/v1/auth/register", "/api/v1/auth/login"]:
             return await call_next(request)
         
         # Get client identifier

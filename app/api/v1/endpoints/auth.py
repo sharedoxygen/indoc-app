@@ -23,7 +23,7 @@ from app.models.audit import AuditLog
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db)
@@ -39,6 +39,15 @@ async def register(
             detail="Email already registered"
         )
     
+    # Check if username exists
+    username_check = await db.execute(
+        select(User).where(User.username == user_data.username)
+    )
+    if username_check.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already exists"
+        )
     # Create new user
     user = User(
         email=user_data.email,
@@ -73,7 +82,8 @@ async def register(
         full_name=user.full_name,
         role=getattr(user.role, "value", user.role),
         is_active=user.is_active,
-        is_verified=user.is_verified
+        is_verified=user.is_verified,
+        created_at=user.created_at
     )
 
 
@@ -101,8 +111,9 @@ async def login(
     
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Inactive user",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
     # Create access token
@@ -142,7 +153,8 @@ async def get_current_user_info(
         full_name=current_user.full_name,
         role=getattr(current_user.role, "value", current_user.role),
         is_active=current_user.is_active,
-        is_verified=current_user.is_verified
+        is_verified=current_user.is_verified,
+        created_at=current_user.created_at
     )
 
 

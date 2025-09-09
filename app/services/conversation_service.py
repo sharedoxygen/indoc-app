@@ -5,8 +5,8 @@ import logging
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 from datetime import datetime
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, desc
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 import json
 import asyncio
 from fastapi import HTTPException, status
@@ -29,7 +29,7 @@ from app.core.compliance import compliance_manager, ComplianceMode
 class ConversationService:
     """Service for managing document conversations"""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.mcp_client = MCPClient(db)
         self.search_service = SearchService(db)
@@ -47,11 +47,12 @@ class ConversationService:
         # If document_id provided, verify it exists and user has access
         if document_id:
             # Query document with tenant_id matching, allowing for legacy docs with tenant_id = None
-            document = self.db.query(Document).filter(
-                Document.uuid == document_id
-            ).filter(
-                (Document.tenant_id == tenant_id) | (Document.tenant_id.is_(None))
-            ).first()
+            stmt = select(Document).where(
+                Document.uuid == document_id,
+                ((Document.tenant_id == tenant_id) | (Document.tenant_id.is_(None)))
+            )
+            result = await self.db.execute(stmt)
+            document = result.scalar_one_or_none()
             
             if not document:
                 raise HTTPException(
@@ -79,8 +80,9 @@ class ConversationService:
         )
         
         self.db.add(conversation)
-        self.db.commit()
-        self.db.refresh(conversation)
+        # Persist and refresh asynchronously
+        await self.db.commit()
+        await self.db.refresh(conversation)
         
         return conversation
     
