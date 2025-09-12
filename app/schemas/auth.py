@@ -33,7 +33,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    role: Optional[str] = "Viewer"
+    role: Optional[str] = "Uploader"
 
 
 class UserUpdate(BaseModel):

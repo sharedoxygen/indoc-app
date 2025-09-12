@@ -15,6 +15,13 @@ from app.models.document import Document
 from app.models.audit import AuditLog
 
 
+# Helper to get day trunc across dialects
+def _day_trunc(column, db):
+    if db.bind and db.bind.dialect.name == "sqlite":
+        return func.strftime("%Y-%m-%d", column)
+    return func.date_trunc("day", column)
+
+
 router = APIRouter()
 
 
@@ -69,7 +76,7 @@ async def get_analytics_summary(
     start_date = end_date - timedelta(days=30)
     activity_result = await db.execute(
         select(
-            func.date_trunc("day", AuditLog.created_at).label("day"),
+            _day_trunc(AuditLog.created_at, db).label("day"),
             func.count().label("events")
         )
         .where(AuditLog.created_at >= start_date)
@@ -148,7 +155,7 @@ async def get_analytics_timeseries(
     # Documents created per day
     docs_result = await db.execute(
         select(
-            func.date_trunc("day", Document.created_at).label("day"),
+            _day_trunc(Document.created_at, db).label("day"),
             func.count().label("count")
         )
         .where(Document.created_at >= start_date)
@@ -166,7 +173,7 @@ async def get_analytics_timeseries(
             for d, c in (
                 db.sync_session.execute(  # type: ignore
                     select(
-                        func.date_trunc("day", AuditLog.created_at).label("day"),
+                        _day_trunc(AuditLog.created_at, db).label("day"),
                         func.count().label("count"),
                     )
                     .where(AuditLog.created_at >= start_date)
@@ -181,7 +188,7 @@ async def get_analytics_timeseries(
     async def _action_timeseries_async(action: str) -> List[Dict[str, Any]]:
         res = await db.execute(
             select(
-                func.date_trunc("day", AuditLog.created_at).label("day"),
+                _day_trunc(AuditLog.created_at, db).label("day"),
                 func.count().label("count"),
             )
             .where(AuditLog.created_at >= start_date)
@@ -249,7 +256,7 @@ async def get_processing_analytics(
     start_date = end_date - timedelta(days=7)
     recent_processing_result = await db.execute(
         select(
-            func.date_trunc("day", Document.updated_at).label("day"),
+            _day_trunc(Document.updated_at, db).label("day"),
             func.count().label("processed_count")
         )
         .where(Document.status == 'indexed')

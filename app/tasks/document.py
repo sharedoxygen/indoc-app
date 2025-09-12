@@ -52,6 +52,14 @@ def process_document(self, document_id: str) -> Dict[str, Any]:
             logger.error(f"Document {document_id} not found")
             return {"status": "error", "message": "Document not found"}
         
+        # Ensure underlying file still exists before doing anything else
+        storage_path = Path(document.storage_path)
+        if not storage_path.exists() or storage_path.stat().st_size == 0:
+            document.status = "failed"
+            document.error_message = f"File missing or zero-byte on disk: {document.storage_path}"
+            self.db.commit()
+            return {"status": "error", "message": document.error_message}
+
         # Update status
         document.status = "processing"
         self.db.commit()

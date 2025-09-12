@@ -170,14 +170,20 @@ async def upload_file(
         
         # Read file content
         content = await file.read()
+        if len(content) == 0:
+            return {
+                "error": "Empty file",
+                "message": "Uploaded file is zero bytes and was rejected"
+            }
+
         file_hash = hashlib.sha256(content).hexdigest()
-        
+
         # Check for duplicates by hash
         existing_result = await db.execute(
             select(Document).where(Document.file_hash == file_hash)
         )
         existing_doc = existing_result.scalar_one_or_none()
-        
+
         if existing_doc:
             return {
                 "error": "Duplicate file",
@@ -189,15 +195,19 @@ async def upload_file(
                     "uploaded_at": existing_doc.created_at.isoformat()
                 }
             }
-        
+
+        # Normalised storage locations (no hard-coded "backend/" prefix)
+        storage_rel_path = f"data/storage/{file_hash}.{file_ext}"
+        temp_rel_path = f"data/temp/{file_hash}.{file_ext}"
+
         # Create a basic document record
         document = Document(
             filename=file.filename,
             file_type=file_ext,
             file_size=len(content),
             file_hash=file_hash,
-            storage_path=f"backend/data/storage/{file_hash}.{file_ext}",
-            temp_path=f"backend/data/temp/{file_hash}.{file_ext}",
+            storage_path=storage_rel_path,
+            temp_path=temp_rel_path,
             status="uploaded",
             title=title or file.filename,
             description=description,
